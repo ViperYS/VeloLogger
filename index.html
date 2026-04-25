@@ -1,672 +1,1163 @@
-<!DOCTYPE html>
+  <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<meta name="theme-color" content="#0a0f1a">
+<meta name="theme-color" content="#080d14">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>VeloLog — GPS Tracker</title>
+<title>VeloLog</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&family=Bebas+Neue&display=swap" rel="stylesheet">
 <style>
-  :root {
-    --bg:       #050c18;
-    --panel:    #0b1628;
-    --border:   #1a2d4a;
-    --accent:   #00e5ff;
-    --accent2:  #ff4b4b;
-    --accent3:  #39ff14;
-    --text:     #c8dff0;
-    --dim:      #4a6680;
-    --glow:     0 0 20px rgba(0,229,255,.35);
-    --glow2:    0 0 20px rgba(255,75,75,.35);
-    --glow3:    0 0 20px rgba(57,255,20,.35);
-  }
+:root {
+  --bg:#080d14; --panel:#0d1520; --panel2:#111c2a;
+  --border:#1c2e42; --border2:#243648;
+  --accent:#00c8ff; --accent2:#ff3d5a; --accent3:#00ff88;
+  --warn:#ffaa00;
+  --text:#b8d4ec; --dim:#3a5570; --dimmer:#1e3248;
+  --glow:0 0 18px rgba(0,200,255,.3);
+  --glow2:0 0 18px rgba(255,61,90,.3);
+  --glow3:0 0 18px rgba(0,255,136,.3);
+  --r:14px;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:'Rajdhani',sans-serif}
 
-  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color: transparent; }
+/* scanlines */
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:9000;
+  background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,.04) 3px,rgba(0,0,0,.04) 4px)}
 
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: 'Space Mono', monospace;
-    min-height: 100dvh;
-    overflow-x: hidden;
-    display: flex;
-    flex-direction: column;
-  }
+/* ── APP SHELL ── */
+#app{display:flex;flex-direction:column;height:100dvh;max-width:480px;margin:0 auto;position:relative}
 
-  /* Scanline overlay */
-  body::before {
-    content:'';
-    position:fixed; inset:0; pointer-events:none; z-index:999;
-    background: repeating-linear-gradient(
-      0deg,
-      transparent,
-      transparent 2px,
-      rgba(0,0,0,.06) 2px,
-      rgba(0,0,0,.06) 4px
-    );
-  }
+/* ── HEADER ── */
+header{display:flex;align-items:center;justify-content:space-between;
+  padding:10px 14px;background:var(--panel);border-bottom:1px solid var(--border);
+  position:relative;z-index:100;flex-shrink:0}
+.logo{font-family:'Bebas Neue',sans-serif;font-size:1.5rem;letter-spacing:.12em;
+  color:var(--accent);text-shadow:var(--glow)}
+.hdr-right{display:flex;align-items:center;gap:10px}
+.signal-wrap{display:flex;align-items:flex-end;gap:2px;height:16px}
+.signal-bar{width:3px;background:var(--dim);border-radius:1px;transition:background .3s}
+.signal-bar:nth-child(1){height:4px}.signal-bar:nth-child(2){height:7px}
+.signal-bar:nth-child(3){height:10px}.signal-bar:nth-child(4){height:13px}
+.signal-bar.on{background:var(--accent3);box-shadow:0 0 4px var(--accent3)}
+.rec-dot{width:8px;height:8px;border-radius:50%;background:var(--dim);transition:all .3s}
+.rec-dot.active{background:#ff3d5a;box-shadow:0 0 8px #ff3d5a;animation:pulse 1.2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.icon-btn{background:none;border:1px solid var(--border2);border-radius:8px;
+  color:var(--text);font-size:1.1rem;width:34px;height:34px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;transition:all .2s}
+.icon-btn:active{background:var(--panel2);border-color:var(--accent)}
 
-  /* Header */
-  header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 14px 18px;
-    border-bottom: 1px solid var(--border);
-    background: var(--panel);
-    position: sticky; top:0; z-index:10;
-  }
-  header h1 {
-    font-family: 'Orbitron', sans-serif;
-    font-size: 1.1rem;
-    font-weight: 900;
-    letter-spacing: .15em;
-    color: var(--accent);
-    text-shadow: var(--glow);
-  }
-  .status-dot {
-    width: 10px; height:10px; border-radius:50%;
-    background: var(--dim);
-    transition: background .4s, box-shadow .4s;
-  }
-  .status-dot.active { background: var(--accent3); box-shadow: var(--glow3); }
-  .status-dot.error  { background: var(--accent2); box-shadow: var(--glow2); }
+/* ── TABS ── */
+.tabs{display:flex;background:var(--panel);border-bottom:1px solid var(--border);flex-shrink:0}
+.tab{flex:1;padding:9px 4px;text-align:center;font-size:.72rem;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--dim);cursor:pointer;transition:all .2s;
+  border-bottom:2px solid transparent;font-weight:600}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent)}
 
-  /* Main layout */
-  main {
-    flex:1;
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
-    padding: 14px;
-    max-width: 480px;
-    width: 100%;
-    margin: 0 auto;
-  }
+/* ── PAGES ── */
+.page{display:none;flex:1;overflow-y:auto;flex-direction:column;
+  scrollbar-width:thin;scrollbar-color:var(--border) transparent}
+.page.active{display:flex}
 
-  /* Big speed dial */
-  .speed-card {
-    background: var(--panel);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    padding: 20px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    position: relative;
-    overflow: hidden;
-  }
-  .speed-card::after {
-    content:'';
-    position:absolute;
-    top:-40%; left:50%;
-    transform:translateX(-50%);
-    width:260px; height:260px;
-    border-radius:50%;
-    background: radial-gradient(circle, rgba(0,229,255,.07) 0%, transparent 70%);
-    pointer-events:none;
-  }
-  .speed-label {
-    font-size:.65rem; letter-spacing:.2em; color:var(--dim);
-    text-transform:uppercase; margin-bottom:4px;
-  }
-  .speed-value {
-    font-family:'Orbitron',sans-serif;
-    font-size: 5.5rem;
-    font-weight:900;
-    line-height:1;
-    color: var(--accent);
-    text-shadow: var(--glow);
-    transition: color .3s;
-  }
-  .speed-unit {
-    font-size:.75rem; letter-spacing:.15em; color:var(--dim);
-    margin-top:4px;
-  }
-  .speed-max {
-    margin-top:8px;
-    font-size:.7rem; color:var(--dim);
-  }
-  .speed-max span { color: var(--accent); }
+/* ═══════════════════════════════════
+   DASHBOARD PAGE
+═══════════════════════════════════ */
+#page-dash{padding:12px;gap:10px}
 
-  /* Arc gauge */
-  .gauge-wrap {
-    margin: 8px 0 4px;
-    width: 200px; height: 100px;
-    position:relative;
-  }
-  .gauge-wrap svg { width:100%; height:100%; overflow:visible; }
-  #gauge-track { stroke: var(--border); stroke-width:10; fill:none; }
-  #gauge-fill  { stroke: var(--accent); stroke-width:10; fill:none;
-                 stroke-linecap:round;
-                 filter: drop-shadow(0 0 6px var(--accent));
-                 transition: stroke-dashoffset .4s cubic-bezier(.4,0,.2,1),
-                             stroke .3s; }
+/* Trip bar */
+.trip-bar{display:flex;align-items:center;justify-content:space-between;
+  background:var(--panel);border:1px solid var(--border);border-radius:var(--r);padding:10px 14px}
+.trip-timer{font-family:'Share Tech Mono',monospace;font-size:1.3rem;color:var(--accent);
+  text-shadow:var(--glow)}
+.trip-label{font-size:.6rem;letter-spacing:.15em;color:var(--dim);text-transform:uppercase}
+.gnss-info{display:flex;gap:14px;align-items:center}
+.gnss-item{display:flex;flex-direction:column;align-items:flex-end;gap:1px}
+.gnss-val{font-family:'Share Tech Mono',monospace;font-size:.85rem;color:var(--accent3)}
+.gnss-lbl{font-size:.55rem;color:var(--dim);letter-spacing:.1em;text-transform:uppercase}
 
-  /* Stats row */
-  .stats-row {
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-    gap: 10px;
-  }
-  .stat-card {
-    background: var(--panel);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 14px 10px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 4px;
-  }
-  .stat-icon { font-size:1.3rem; }
-  .stat-val {
-    font-family:'Orbitron',sans-serif;
-    font-size:1.05rem; font-weight:700;
-    color: var(--accent);
-  }
-  .stat-val.red   { color:var(--accent2); text-shadow:var(--glow2); }
-  .stat-val.green { color:var(--accent3); text-shadow:var(--glow3); }
-  .stat-lbl { font-size:.55rem; letter-spacing:.15em; color:var(--dim); text-transform:uppercase; }
+/* ── GAUGE CONTAINER ── */
+.gauge-container{background:var(--panel);border:1px solid var(--border);
+  border-radius:var(--r);display:flex;flex-direction:column;align-items:center;
+  padding:16px 12px 10px;position:relative;overflow:hidden}
+.gauge-container::before{content:'';position:absolute;top:-60px;left:50%;
+  transform:translateX(-50%);width:300px;height:300px;border-radius:50%;
+  background:radial-gradient(circle,rgba(0,200,255,.05) 0%,transparent 65%);pointer-events:none}
 
-  /* Accel bars */
-  .accel-card {
-    background: var(--panel);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 16px;
-  }
-  .accel-title {
-    font-size:.65rem; letter-spacing:.2em; color:var(--dim);
-    text-transform:uppercase; margin-bottom:12px;
-  }
-  .accel-axis {
-    display:flex; align-items:center; gap:10px; margin-bottom:10px;
-  }
-  .axis-name {
-    width:16px; font-size:.7rem; color:var(--dim); flex-shrink:0;
-  }
-  .bar-track {
-    flex:1; height:12px; border-radius:6px;
-    background: rgba(255,255,255,.05);
-    position:relative; overflow:hidden;
-  }
-  .bar-fill {
-    position:absolute; top:0; height:100%;
-    border-radius:6px;
-    transition: width .12s, left .12s;
-  }
-  .bar-fill.x { background: var(--accent);  box-shadow: var(--glow);  }
-  .bar-fill.y { background: var(--accent3); box-shadow: var(--glow3); }
-  .bar-fill.z { background: var(--accent2); box-shadow: var(--glow2); }
-  .axis-val {
-    width: 52px; text-align:right;
-    font-size:.72rem; font-family:'Orbitron',sans-serif;
-    color: var(--text);
-  }
+/* ── ANALOG GAUGE ── */
+#analog-gauge{width:100%;display:flex;flex-direction:column;align-items:center}
+.analog-svg-wrap{width:min(260px,85vw);height:auto}
+#ag-svg{width:100%;overflow:visible}
+/* tick marks drawn by JS */
+.ag-center-val{text-align:center;margin-top:-8px}
+.ag-speed-num{font-family:'Bebas Neue',sans-serif;font-size:3.8rem;line-height:1;
+  color:var(--accent);text-shadow:var(--glow);transition:color .3s}
+.ag-speed-unit{font-size:.65rem;letter-spacing:.2em;color:var(--dim);text-transform:uppercase}
+.ag-speed-max{font-size:.65rem;color:var(--dim);margin-top:2px}
+.ag-speed-max span{color:var(--accent)}
 
-  /* GPS info */
-  .gps-card {
-    background: var(--panel);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 16px;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
-  }
-  .gps-item { display:flex; flex-direction:column; gap:2px; }
-  .gps-lbl  { font-size:.55rem; letter-spacing:.18em; color:var(--dim); text-transform:uppercase; }
-  .gps-val  { font-size:.82rem; font-family:'Orbitron',sans-serif; color:var(--text); word-break:break-all; }
+/* ── DIGITAL GAUGE ── */
+#digital-gauge{width:100%;display:none;flex-direction:column;align-items:center;gap:6px}
+.dg-display{background:#060b11;border:1px solid var(--border2);border-radius:10px;
+  width:100%;padding:14px;display:flex;flex-direction:column;align-items:center;
+  position:relative;overflow:hidden}
+.dg-display::after{content:'';position:absolute;inset:0;
+  background:repeating-linear-gradient(0deg,transparent,transparent 4px,rgba(0,200,255,.015) 4px,rgba(0,200,255,.015) 5px);
+  pointer-events:none}
+.dg-speed{font-family:'Share Tech Mono',monospace;font-size:5.5rem;line-height:1;
+  color:var(--accent3);text-shadow:0 0 30px rgba(0,255,136,.4);transition:color .3s;
+  letter-spacing:-.02em}
+.dg-unit{font-size:.7rem;letter-spacing:.25em;color:var(--dim);text-transform:uppercase;margin-top:2px}
+.dg-bar-wrap{width:100%;height:6px;background:var(--dimmer);border-radius:3px;overflow:hidden}
+.dg-bar{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--accent3),var(--accent));
+  transition:width .3s cubic-bezier(.4,0,.2,1),background .3s;width:0%}
+.dg-max{font-size:.65rem;color:var(--dim);margin-top:2px}
+.dg-max span{color:var(--accent3)}
 
-  /* Log table */
-  .log-card {
-    background: var(--panel);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 16px;
-    flex:1;
-  }
-  .log-header {
-    display:flex; justify-content:space-between; align-items:center;
-    margin-bottom:10px;
-  }
-  .log-title {
-    font-size:.65rem; letter-spacing:.2em; color:var(--dim);
-    text-transform:uppercase;
-  }
-  .log-count {
-    font-size:.65rem; color:var(--dim);
-    font-family:'Orbitron',sans-serif;
-  }
-  #log-body {
-    max-height: 160px;
-    overflow-y: auto;
-    scrollbar-width: thin;
-    scrollbar-color: var(--border) transparent;
-  }
-  .log-row {
-    display:grid;
-    grid-template-columns: 55px 60px 75px 1fr;
-    gap:6px;
-    font-size:.62rem;
-    padding:5px 0;
-    border-bottom:1px solid rgba(255,255,255,.04);
-    color:var(--dim);
-    animation: fadeIn .2s ease;
-  }
-  .log-row span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .log-row span:first-child { color:var(--accent); }
-  @keyframes fadeIn { from{opacity:0;transform:translateY(-4px)} to{opacity:1;transform:none} }
+/* ── STATS ROW ── */
+.stats-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.stat-card{background:var(--panel);border:1px solid var(--border);border-radius:var(--r);
+  padding:12px 8px;display:flex;flex-direction:column;align-items:center;gap:3px}
+.stat-icon{font-size:1.1rem}
+.stat-val{font-family:'Share Tech Mono',monospace;font-size:1rem;font-weight:700;color:var(--accent)}
+.stat-val.green{color:var(--accent3);text-shadow:var(--glow3)}
+.stat-val.red{color:var(--accent2);text-shadow:var(--glow2)}
+.stat-lbl{font-size:.53rem;letter-spacing:.12em;color:var(--dim);text-transform:uppercase;text-align:center}
 
-  /* Controls */
-  .controls {
-    display:grid; grid-template-columns:1fr 1fr; gap:10px;
-    padding: 0 0 8px;
-  }
-  .btn {
-    padding: 14px;
-    border-radius: 12px;
-    border: 1px solid var(--border);
-    font-family:'Orbitron',sans-serif;
-    font-size:.72rem; letter-spacing:.1em;
-    cursor:pointer;
-    transition: all .2s;
-    text-transform:uppercase;
-  }
-  .btn-start {
-    background: rgba(57,255,20,.08);
-    color: var(--accent3);
-    border-color: rgba(57,255,20,.3);
-  }
-  .btn-start:active, .btn-start.active {
-    background: rgba(57,255,20,.18);
-    box-shadow: var(--glow3);
-  }
-  .btn-stop {
-    background: rgba(255,75,75,.08);
-    color: var(--accent2);
-    border-color: rgba(255,75,75,.3);
-  }
-  .btn-stop:active { background: rgba(255,75,75,.18); box-shadow: var(--glow2); }
-  .btn-export {
-    background: rgba(0,229,255,.06);
-    color: var(--accent);
-    border-color: rgba(0,229,255,.25);
-    grid-column: 1/-1;
-  }
-  .btn-export:active { background: rgba(0,229,255,.14); box-shadow: var(--glow); }
-  .btn:disabled { opacity:.35; pointer-events:none; }
+/* ── SECONDARY STATS ── */
+.secondary-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.sec-card{background:var(--panel);border:1px solid var(--border);border-radius:10px;
+  padding:11px 12px;display:flex;flex-direction:column;gap:2px}
+.sec-lbl{font-size:.55rem;letter-spacing:.15em;color:var(--dim);text-transform:uppercase}
+.sec-val{font-family:'Share Tech Mono',monospace;font-size:.9rem;color:var(--text)}
 
-  /* Permission notice */
-  .notice {
-    background: rgba(255,75,75,.08);
-    border: 1px solid rgba(255,75,75,.25);
-    border-radius:10px; padding:12px 14px;
-    font-size:.7rem; line-height:1.6;
-    color: #ff8080;
-    display:none;
-  }
-  .notice.show { display:block; }
+/* ── CONTROLS ── */
+.ctrl-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.btn{padding:13px;border-radius:10px;border:1px solid var(--border);
+  font-family:'Rajdhani',sans-serif;font-size:.8rem;letter-spacing:.1em;
+  cursor:pointer;transition:all .2s;text-transform:uppercase;font-weight:700}
+.btn-start{background:rgba(0,255,136,.08);color:var(--accent3);border-color:rgba(0,255,136,.3)}
+.btn-start:active{background:rgba(0,255,136,.18);box-shadow:var(--glow3)}
+.btn-stop{background:rgba(255,61,90,.08);color:var(--accent2);border-color:rgba(255,61,90,.3)}
+.btn-stop:active{background:rgba(255,61,90,.18);box-shadow:var(--glow2)}
+.btn:disabled{opacity:.3;pointer-events:none}
 
-  /* Toast */
-  .toast {
-    position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(80px);
-    background: var(--panel); border:1px solid var(--border);
-    border-radius:10px; padding:10px 20px;
-    font-size:.75rem; color:var(--accent);
-    transition: transform .3s cubic-bezier(.4,0,.2,1);
-    z-index:1000; white-space:nowrap;
-  }
-  .toast.show { transform:translateX(-50%) translateY(0); }
+/* ═══════════════════════════════════
+   TRIPS PAGE
+═══════════════════════════════════ */
+#page-trips{padding:12px;gap:10px}
+.section-hdr{display:flex;align-items:center;justify-content:space-between;
+  padding:0 2px;margin-bottom:2px}
+.section-title{font-size:.65rem;letter-spacing:.2em;color:var(--dim);text-transform:uppercase}
+.trip-card{background:var(--panel);border:1px solid var(--border);border-radius:var(--r);
+  padding:14px;display:flex;flex-direction:column;gap:8px;cursor:pointer;
+  transition:border-color .2s,background .2s}
+.trip-card:active{background:var(--panel2);border-color:var(--border2)}
+.trip-card-hdr{display:flex;align-items:flex-start;justify-content:space-between}
+.trip-name{font-size:1rem;font-weight:700;color:var(--text)}
+.trip-date{font-size:.65rem;color:var(--dim);font-family:'Share Tech Mono',monospace}
+.trip-stats-mini{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.tsm-item{display:flex;flex-direction:column;gap:1px}
+.tsm-val{font-family:'Share Tech Mono',monospace;font-size:.82rem;color:var(--accent)}
+.tsm-lbl{font-size:.5rem;letter-spacing:.1em;color:var(--dim);text-transform:uppercase}
+.trip-actions{display:flex;gap:6px;margin-top:2px}
+.ta-btn{flex:1;padding:7px;border-radius:8px;border:1px solid var(--border2);
+  background:transparent;color:var(--dim);font-size:.65rem;letter-spacing:.08em;
+  cursor:pointer;font-family:'Rajdhani',sans-serif;font-weight:600;text-transform:uppercase;transition:all .2s}
+.ta-btn.view{color:var(--accent);border-color:rgba(0,200,255,.3)}
+.ta-btn.compare{color:var(--warn);border-color:rgba(255,170,0,.3)}
+.ta-btn.del{color:var(--accent2);border-color:rgba(255,61,90,.3)}
+.ta-btn:active{opacity:.6}
+.empty-state{text-align:center;padding:40px 20px;color:var(--dim);font-size:.85rem;line-height:1.8}
+
+/* Compare mode */
+.compare-bar{background:var(--panel2);border:1px solid var(--border2);border-radius:10px;
+  padding:10px 14px;display:flex;align-items:center;justify-content:space-between;display:none}
+.compare-bar.show{display:flex}
+.compare-info{font-size:.72rem;color:var(--warn)}
+.compare-go{padding:7px 14px;border-radius:8px;border:1px solid rgba(255,170,0,.4);
+  background:rgba(255,170,0,.1);color:var(--warn);font-size:.7rem;cursor:pointer;
+  font-family:'Rajdhani',sans-serif;font-weight:700;text-transform:uppercase}
+
+/* ═══════════════════════════════════
+   SETTINGS PAGE
+═══════════════════════════════════ */
+#page-settings{padding:12px;gap:10px}
+.setting-group{background:var(--panel);border:1px solid var(--border);border-radius:var(--r);overflow:hidden}
+.setting-group-title{padding:10px 14px;font-size:.6rem;letter-spacing:.2em;
+  color:var(--dim);text-transform:uppercase;border-bottom:1px solid var(--border);
+  background:var(--panel2)}
+.setting-row{display:flex;align-items:center;justify-content:space-between;
+  padding:13px 14px;border-bottom:1px solid var(--border)}
+.setting-row:last-child{border-bottom:none}
+.setting-name{font-size:.9rem;font-weight:600;color:var(--text)}
+.setting-desc{font-size:.65rem;color:var(--dim);margin-top:1px}
+
+/* Toggle */
+.toggle{position:relative;width:46px;height:26px;flex-shrink:0}
+.toggle input{opacity:0;width:0;height:0}
+.toggle-slider{position:absolute;inset:0;background:var(--dimmer);border-radius:13px;
+  cursor:pointer;transition:.3s;border:1px solid var(--border2)}
+.toggle-slider::before{content:'';position:absolute;height:18px;width:18px;
+  left:3px;top:3px;background:var(--dim);border-radius:50%;transition:.3s}
+.toggle input:checked + .toggle-slider{background:rgba(0,200,255,.2);border-color:var(--accent)}
+.toggle input:checked + .toggle-slider::before{transform:translateX(20px);background:var(--accent)}
+
+/* Gauge mode selector */
+.gauge-selector{display:flex;gap:0;border:1px solid var(--border2);border-radius:8px;overflow:hidden}
+.gauge-opt{padding:7px 16px;font-size:.75rem;font-weight:700;letter-spacing:.05em;
+  cursor:pointer;transition:all .2s;font-family:'Rajdhani',sans-serif;text-transform:uppercase;
+  background:transparent;border:none;color:var(--dim)}
+.gauge-opt.active{background:rgba(0,200,255,.15);color:var(--accent)}
+
+/* Units selector */
+.units-selector{display:flex;gap:0;border:1px solid var(--border2);border-radius:8px;overflow:hidden}
+.unit-opt{padding:7px 14px;font-size:.75rem;font-weight:700;cursor:pointer;
+  transition:all .2s;font-family:'Rajdhani',sans-serif;text-transform:uppercase;
+  background:transparent;border:none;color:var(--dim)}
+.unit-opt.active{background:rgba(0,200,255,.15);color:var(--accent)}
+
+/* ═══════════════════════════════════
+   MODALS
+═══════════════════════════════════ */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:500;
+  display:none;align-items:flex-end;justify-content:center;backdrop-filter:blur(4px)}
+.modal-overlay.show{display:flex}
+.modal{background:var(--panel);border:1px solid var(--border2);
+  border-radius:16px 16px 0 0;width:100%;max-width:480px;max-height:90dvh;
+  overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:14px;
+  animation:slideUp .25s cubic-bezier(.4,0,.2,1)}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.modal-handle{width:36px;height:4px;background:var(--border2);border-radius:2px;
+  margin:0 auto -4px}
+.modal-title{font-family:'Bebas Neue',sans-serif;font-size:1.4rem;letter-spacing:.1em;
+  color:var(--accent);text-align:center}
+.modal-close{position:absolute;top:14px;right:16px;background:none;border:1px solid var(--border2);
+  border-radius:8px;width:32px;height:32px;color:var(--dim);cursor:pointer;font-size:1rem}
+
+/* Trip summary */
+.summary-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.sum-card{background:var(--panel2);border:1px solid var(--border);border-radius:10px;
+  padding:12px;display:flex;flex-direction:column;gap:3px}
+.sum-val{font-family:'Share Tech Mono',monospace;font-size:1.3rem;color:var(--accent);font-weight:700}
+.sum-val.green{color:var(--accent3)}
+.sum-val.red{color:var(--accent2)}
+.sum-lbl{font-size:.58rem;letter-spacing:.12em;color:var(--dim);text-transform:uppercase}
+.sum-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.sum-btn{padding:12px;border-radius:10px;border:1px solid var(--border);
+  font-family:'Rajdhani',sans-serif;font-size:.8rem;letter-spacing:.1em;
+  cursor:pointer;text-transform:uppercase;font-weight:700;transition:all .2s}
+.sum-btn.save{background:rgba(0,255,136,.08);color:var(--accent3);border-color:rgba(0,255,136,.3)}
+.sum-btn.discard{background:rgba(255,61,90,.06);color:var(--accent2);border-color:rgba(255,61,90,.25)}
+.sum-btn:active{opacity:.7}
+.trip-name-input{width:100%;background:var(--panel2);border:1px solid var(--border2);
+  border-radius:8px;padding:10px 12px;color:var(--text);font-family:'Rajdhani',sans-serif;
+  font-size:.95rem;outline:none;transition:border-color .2s}
+.trip-name-input:focus{border-color:var(--accent)}
+
+/* Compare modal */
+.compare-table{width:100%;border-collapse:collapse}
+.compare-table th{font-size:.58rem;letter-spacing:.12em;color:var(--dim);
+  text-transform:uppercase;padding:6px 8px;text-align:left;border-bottom:1px solid var(--border)}
+.compare-table td{padding:8px;font-size:.82rem;font-family:'Share Tech Mono',monospace;
+  border-bottom:1px solid var(--dimmer)}
+.compare-table tr:last-child td{border-bottom:none}
+.compare-table td.name{font-family:'Rajdhani',sans-serif;font-size:.85rem;color:var(--text);font-weight:600}
+.compare-table td.better{color:var(--accent3)}
+.compare-table td.worse{color:var(--accent2)}
+
+/* Toast */
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);
+  background:var(--panel2);border:1px solid var(--border2);border-radius:10px;
+  padding:9px 18px;font-size:.78rem;color:var(--accent);z-index:9999;
+  transition:transform .3s cubic-bezier(.4,0,.2,1);white-space:nowrap;
+  font-family:'Rajdhani',sans-serif;font-weight:600;letter-spacing:.05em}
+.toast.show{transform:translateX(-50%) translateY(0)}
 </style>
 </head>
 <body>
+<div id="app">
 
+<!-- HEADER -->
 <header>
-  <h1>⚡ VELOLOG</h1>
-  <div style="display:flex;align-items:center;gap:8px;">
-    <span id="status-text" style="font-size:.65rem;letter-spacing:.1em;color:var(--dim)">OFFLINE</span>
-    <div class="status-dot" id="status-dot"></div>
+  <div class="logo">VeloLog</div>
+  <div class="hdr-right">
+    <div class="signal-wrap" id="signal-wrap">
+      <div class="signal-bar" id="sb1"></div>
+      <div class="signal-bar" id="sb2"></div>
+      <div class="signal-bar" id="sb3"></div>
+      <div class="signal-bar" id="sb4"></div>
+    </div>
+    <div class="rec-dot" id="rec-dot"></div>
   </div>
 </header>
 
-<main>
-  <!-- Speed card -->
-  <div class="speed-card">
-    <div class="speed-label">GPS SPEED</div>
-    <div class="gauge-wrap">
-      <svg viewBox="0 0 200 100">
-        <path id="gauge-track" d="M 10,100 A 90,90 0 0 1 190,100"/>
-        <path id="gauge-fill"  d="M 10,100 A 90,90 0 0 1 190,100"
-              stroke-dasharray="283" stroke-dashoffset="283"/>
-      </svg>
+<!-- TABS -->
+<div class="tabs">
+  <div class="tab active" data-tab="dash">Dashboard</div>
+  <div class="tab" data-tab="trips">Trips</div>
+  <div class="tab" data-tab="settings">Settings</div>
+</div>
+
+<!-- ══════════════ DASHBOARD ══════════════ -->
+<div class="page active" id="page-dash">
+
+  <!-- Trip timer + GNSS -->
+  <div class="trip-bar">
+    <div>
+      <div class="trip-label">Trip Time</div>
+      <div class="trip-timer" id="trip-timer">00:00:00</div>
     </div>
-    <div class="speed-value" id="speed-val">0</div>
-    <div class="speed-unit">KM/H</div>
-    <div class="speed-max">MAX: <span id="speed-max">0</span> km/h</div>
+    <div class="gnss-info">
+      <div class="gnss-item">
+        <span class="gnss-val" id="gnss-sats">—</span>
+        <span class="gnss-lbl">Satellites</span>
+      </div>
+      <div class="gnss-item">
+        <span class="gnss-val" id="gnss-acc">—</span>
+        <span class="gnss-lbl">Accuracy</span>
+      </div>
+    </div>
   </div>
 
-  <!-- Stats row -->
+  <!-- GAUGE -->
+  <div class="gauge-container">
+    <!-- ANALOG -->
+    <div id="analog-gauge">
+      <div class="analog-svg-wrap">
+        <svg id="ag-svg" viewBox="0 0 260 155">
+          <!-- Track -->
+          <path id="ag-track" d="" fill="none" stroke="#1c2e42" stroke-width="14" stroke-linecap="round"/>
+          <!-- Fill -->
+          <path id="ag-fill"  d="" fill="none" stroke="#00c8ff" stroke-width="14" stroke-linecap="round"
+                style="filter:drop-shadow(0 0 8px #00c8ff);transition:all .35s cubic-bezier(.4,0,.2,1)"/>
+          <!-- Needle -->
+          <line id="ag-needle" x1="130" y1="130" x2="130" y2="45"
+                stroke="#ff3d5a" stroke-width="2.5" stroke-linecap="round"
+                style="transform-origin:130px 130px;transition:transform .35s cubic-bezier(.4,0,.2,1);
+                       filter:drop-shadow(0 0 5px #ff3d5a)"/>
+          <circle cx="130" cy="130" r="7" fill="#0d1520" stroke="#ff3d5a" stroke-width="2"/>
+          <circle cx="130" cy="130" r="3" fill="#ff3d5a"/>
+          <!-- Speed labels drawn by JS -->
+          <g id="ag-labels"></g>
+          <!-- Tick marks -->
+          <g id="ag-ticks"></g>
+        </svg>
+      </div>
+      <div class="ag-center-val">
+        <div class="ag-speed-num" id="ag-speed">0</div>
+        <div class="ag-speed-unit" id="speed-unit-label">km/h</div>
+        <div class="ag-speed-max">Peak: <span id="ag-max">0</span> <span id="ag-max-unit">km/h</span></div>
+      </div>
+    </div>
+
+    <!-- DIGITAL -->
+    <div id="digital-gauge">
+      <div class="dg-display" style="width:100%">
+        <div class="dg-speed" id="dg-speed">0</div>
+        <div class="dg-unit" id="dg-unit-label">km/h</div>
+        <div style="width:100%;margin-top:10px">
+          <div class="dg-bar-wrap"><div class="dg-bar" id="dg-bar"></div></div>
+        </div>
+      </div>
+      <div class="dg-max">Peak: <span id="dg-max">0</span> <span id="dg-max-unit">km/h</span></div>
+    </div>
+  </div>
+
+  <!-- Main stats -->
   <div class="stats-row">
     <div class="stat-card">
-      <div class="stat-icon">🏎️</div>
-      <div class="stat-val green" id="accel-val">0.00</div>
+      <div class="stat-icon">📍</div>
+      <div class="stat-val green" id="stat-dist">0.00</div>
+      <div class="stat-lbl">Dist (km)</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">⚡</div>
+      <div class="stat-val" id="stat-accel">0.00</div>
       <div class="stat-lbl">Accel m/s²</div>
     </div>
     <div class="stat-card">
-      <div class="stat-icon">📍</div>
-      <div class="stat-val" id="accuracy-val">—</div>
-      <div class="stat-lbl">Accuracy m</div>
-    </div>
-    <div class="stat-card">
       <div class="stat-icon">📊</div>
-      <div class="stat-val" id="points-val">0</div>
-      <div class="stat-lbl">Points</div>
+      <div class="stat-val" id="stat-avg">0.0</div>
+      <div class="stat-lbl">Avg Speed</div>
     </div>
   </div>
 
-  <!-- Accelerometer bars -->
-  <div class="accel-card">
-    <div class="accel-title">⚡ Raw Accelerometer (m/s²)</div>
-    <div class="accel-axis">
-      <span class="axis-name">X</span>
-      <div class="bar-track">
-        <div class="bar-fill x" id="bar-x" style="left:50%;width:0%"></div>
-      </div>
-      <span class="axis-val" id="ax-val">0.00</span>
+  <!-- Secondary stats -->
+  <div class="secondary-grid">
+    <div class="sec-card">
+      <span class="sec-lbl">Peak Accel</span>
+      <span class="sec-val" id="sec-peak-accel">— m/s²</span>
     </div>
-    <div class="accel-axis">
-      <span class="axis-name">Y</span>
-      <div class="bar-track">
-        <div class="bar-fill y" id="bar-y" style="left:50%;width:0%"></div>
-      </div>
-      <span class="axis-val" id="ay-val">0.00</span>
+    <div class="sec-card">
+      <span class="sec-lbl">Heading</span>
+      <span class="sec-val" id="sec-heading">—</span>
     </div>
-    <div class="accel-axis">
-      <span class="axis-name">Z</span>
-      <div class="bar-track">
-        <div class="bar-fill z" id="bar-z" style="left:50%;width:0%"></div>
-      </div>
-      <span class="axis-val" id="az-val">0.00</span>
+    <div class="sec-card">
+      <span class="sec-lbl">Altitude</span>
+      <span class="sec-val" id="sec-alt">— m</span>
     </div>
-  </div>
-
-  <!-- GPS info -->
-  <div class="gps-card">
-    <div class="gps-item">
-      <span class="gps-lbl">Latitude</span>
-      <span class="gps-val" id="lat-val">—</span>
-    </div>
-    <div class="gps-item">
-      <span class="gps-lbl">Longitude</span>
-      <span class="gps-val" id="lon-val">—</span>
-    </div>
-    <div class="gps-item">
-      <span class="gps-lbl">Altitude</span>
-      <span class="gps-val" id="alt-val">—</span>
-    </div>
-    <div class="gps-item">
-      <span class="gps-lbl">Heading</span>
-      <span class="gps-val" id="hdg-val">—</span>
-    </div>
-  </div>
-
-  <!-- Permission notice -->
-  <div class="notice" id="notice"></div>
-
-  <!-- Log -->
-  <div class="log-card">
-    <div class="log-header">
-      <span class="log-title">📋 Session Log</span>
-      <span class="log-count" id="log-count">0 entries</span>
-    </div>
-    <div id="log-body">
-      <div style="font-size:.65rem;color:var(--dim);text-align:center;padding:20px 0;">
-        Start logging to see data here
-      </div>
+    <div class="sec-card">
+      <span class="sec-lbl">Coordinates</span>
+      <span class="sec-val" id="sec-coords" style="font-size:.72rem">—</span>
     </div>
   </div>
 
   <!-- Controls -->
-  <div class="controls">
-    <button class="btn btn-start" id="btn-start" onclick="startLogging()">▶ START</button>
-    <button class="btn btn-stop"  id="btn-stop"  onclick="stopLogging()" disabled>■ STOP</button>
-    <button class="btn btn-export" id="btn-export" onclick="exportCSV()" disabled>⬇ EXPORT CSV</button>
+  <div class="ctrl-row">
+    <button class="btn btn-start" id="btn-start" onclick="startTrip()">▶ Start Trip</button>
+    <button class="btn btn-stop"  id="btn-stop"  onclick="stopTrip()" disabled>■ End Trip</button>
   </div>
-</main>
+
+</div>
+
+<!-- ══════════════ TRIPS ══════════════ -->
+<div class="page" id="page-trips">
+  <div class="compare-bar" id="compare-bar">
+    <span class="compare-info" id="compare-info">Select 2 trips to compare</span>
+    <button class="compare-go" id="compare-go-btn" onclick="openCompare()" disabled>Compare</button>
+  </div>
+  <div id="trips-list"></div>
+</div>
+
+<!-- ══════════════ SETTINGS ══════════════ -->
+<div class="page" id="page-settings">
+
+  <div class="setting-group">
+    <div class="setting-group-title">Display</div>
+    <div class="setting-row">
+      <div>
+        <div class="setting-name">Gauge Mode</div>
+        <div class="setting-desc">Analog dial or digital readout</div>
+      </div>
+      <div class="gauge-selector">
+        <button class="gauge-opt active" onclick="setGaugeMode('analog')">Analog</button>
+        <button class="gauge-opt" onclick="setGaugeMode('digital')">Digital</button>
+      </div>
+    </div>
+    <div class="setting-row">
+      <div>
+        <div class="setting-name">Speed Units</div>
+        <div class="setting-desc">Kilometres or miles per hour</div>
+      </div>
+      <div class="units-selector">
+        <button class="unit-opt active" onclick="setUnits('kmh')">km/h</button>
+        <button class="unit-opt" onclick="setUnits('mph')">mph</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="setting-group">
+    <div class="setting-group-title">GPS</div>
+    <div class="setting-row">
+      <div>
+        <div class="setting-name">High Accuracy</div>
+        <div class="setting-desc">Uses more battery, better precision</div>
+      </div>
+      <label class="toggle">
+        <input type="checkbox" id="tog-highaccuracy" checked>
+        <span class="toggle-slider"></span>
+      </label>
+    </div>
+    <div class="setting-row">
+      <div>
+        <div class="setting-name">Auto-save Trips</div>
+        <div class="setting-desc">Save automatically when trip ends</div>
+      </div>
+      <label class="toggle">
+        <input type="checkbox" id="tog-autosave">
+        <span class="toggle-slider"></span>
+      </label>
+    </div>
+  </div>
+
+  <div class="setting-group">
+    <div class="setting-group-title">Data</div>
+    <div class="setting-row" style="cursor:pointer" onclick="exportAllTrips()">
+      <div>
+        <div class="setting-name">Export All Trips</div>
+        <div class="setting-desc">Download as CSV file</div>
+      </div>
+      <span style="color:var(--accent);font-size:1.1rem">↓</span>
+    </div>
+    <div class="setting-row" style="cursor:pointer" onclick="clearAllTrips()">
+      <div>
+        <div class="setting-name" style="color:var(--accent2)">Clear All Trips</div>
+        <div class="setting-desc">Permanently delete all saved trips</div>
+      </div>
+      <span style="color:var(--accent2);font-size:1.1rem">✕</span>
+    </div>
+  </div>
+
+  <div style="text-align:center;padding:16px;font-size:.65rem;color:var(--dim);letter-spacing:.08em">
+    VELOLOG v2.0 · GPS Speed & Acceleration Logger
+  </div>
+</div>
+
+</div><!-- /app -->
+
+<!-- ══════════════ MODALS ══════════════ -->
+
+<!-- Trip Summary Modal -->
+<div class="modal-overlay" id="modal-summary">
+  <div class="modal" style="position:relative">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Trip Summary</div>
+    <input class="trip-name-input" id="trip-name-input" placeholder="Name this trip…" maxlength="40">
+    <div class="summary-grid" id="summary-grid"></div>
+    <div class="sum-actions">
+      <button class="sum-btn save" onclick="saveTrip()">💾 Save Trip</button>
+      <button class="sum-btn discard" onclick="discardTrip()">🗑 Discard</button>
+    </div>
+  </div>
+</div>
+
+<!-- Trip Detail Modal -->
+<div class="modal-overlay" id="modal-detail">
+  <div class="modal" style="position:relative">
+    <button class="modal-close" onclick="closeModal('modal-detail')">✕</button>
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="detail-title">Trip Detail</div>
+    <div class="summary-grid" id="detail-grid"></div>
+    <button class="sum-btn save" style="width:100%" onclick="exportTripCSV()">⬇ Export CSV</button>
+  </div>
+</div>
+
+<!-- Compare Modal -->
+<div class="modal-overlay" id="modal-compare">
+  <div class="modal" style="position:relative">
+    <button class="modal-close" onclick="closeModal('modal-compare')">✕</button>
+    <div class="modal-handle"></div>
+    <div class="modal-title">Compare Trips</div>
+    <div style="overflow-x:auto">
+      <table class="compare-table" id="compare-table"></table>
+    </div>
+  </div>
+</div>
 
 <div class="toast" id="toast"></div>
 
 <script>
-// ─── State ──────────────────────────────────────────────────────────────────
-let watchId     = null;
-let accelListen = false;
-let running     = false;
-let log         = [];
-let maxSpeed    = 0;
+// ═══════════════════════════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════════════════════════
+let settings = {
+  gaugeMode: 'analog',
+  units: 'kmh',
+  highAccuracy: true,
+  autosave: false
+};
 
-let ax = 0, ay = 0, az = 0;   // raw accelerometer
-let prevSpeed = null, prevTime = null;
+let trips = [];            // saved trips (localStorage)
+let currentLog = [];       // raw GPS entries for active trip
+let running = false;
+let watchId = null;
 
-// ─── GPS ────────────────────────────────────────────────────────────────────
-function startLogging() {
-  if (!navigator.geolocation) {
-    showNotice('❌ Geolocation not supported by this browser.');
-    return;
-  }
+// Active trip metrics
+let tripStartTime = null;
+let timerInterval = null;
+let maxSpeed = 0;
+let prevSpeedMs = null, prevTimeMs = null;
+let totalDistKm = 0;
+let prevLat = null, prevLon = null;
+let speedSum = 0, speedCount = 0;
+let peakAccel = 0;
+let currentAccel = 0;
+let currentSpeed = 0;
 
-  running = true;
-  log = [];
-  maxSpeed = 0;
-  prevSpeed = null; prevTime = null;
-  setStatus('active', 'ACQUIRING');
-  btnState(true);
-  clearLog();
+// Compare selection
+let compareIds = [];
 
-  watchId = navigator.geolocation.watchPosition(onGPS, onGPSError, {
-    enableHighAccuracy: true,
-    maximumAge: 0,
-    timeout: 10000
+// Detail export ref
+let detailTripId = null;
+
+// ═══════════════════════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════════════════════
+function init() {
+  loadSettings();
+  loadTrips();
+  applySettings();
+  drawAnalogGauge();
+  renderTrips();
+  updateAnalog(0);
+
+  // Tabs
+  document.querySelectorAll('.tab').forEach(t => {
+    t.addEventListener('click', () => {
+      document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+      document.querySelectorAll('.page').forEach(x => x.classList.remove('active'));
+      t.classList.add('active');
+      document.getElementById('page-' + t.dataset.tab).classList.add('active');
+    });
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  SETTINGS
+// ═══════════════════════════════════════════════════════════════
+function loadSettings() {
+  try { const s = localStorage.getItem('vl_settings'); if(s) settings = {...settings,...JSON.parse(s)}; } catch(e){}
+}
+function saveSettings() {
+  localStorage.setItem('vl_settings', JSON.stringify(settings));
+}
+function applySettings() {
+  // Gauge mode
+  document.querySelectorAll('.gauge-opt').forEach(el => {
+    el.classList.toggle('active', el.textContent.toLowerCase() === settings.gaugeMode);
+  });
+  document.getElementById('analog-gauge').style.display = settings.gaugeMode === 'analog' ? 'flex' : 'none';
+  document.getElementById('digital-gauge').style.display = settings.gaugeMode === 'digital' ? 'flex' : 'none';
+
+  // Units
+  document.querySelectorAll('.unit-opt').forEach(el => {
+    el.classList.toggle('active', el.textContent === (settings.units === 'kmh' ? 'km/h' : 'mph'));
+  });
+  const ulabel = settings.units === 'kmh' ? 'km/h' : 'mph';
+  ['speed-unit-label','dg-unit-label','ag-max-unit','dg-max-unit'].forEach(id => {
+    const el = document.getElementById(id); if(el) el.textContent = ulabel;
   });
 
-  // Accelerometer (DeviceMotion)
-  if (window.DeviceMotionEvent) {
-    if (typeof DeviceMotionEvent.requestPermission === 'function') {
-      // iOS 13+
-      DeviceMotionEvent.requestPermission().then(s => {
-        if (s === 'granted') startAccel();
-        else showNotice('⚠️ Motion permission denied. Accelerometer unavailable.');
-      });
-    } else {
-      startAccel();
+  // Toggles
+  document.getElementById('tog-highaccuracy').checked = settings.highAccuracy;
+  document.getElementById('tog-autosave').checked = settings.autosave;
+}
+
+function setGaugeMode(mode) {
+  settings.gaugeMode = mode; saveSettings(); applySettings();
+  updateSpeedDisplay(currentSpeed);
+}
+function setUnits(u) {
+  settings.units = u; saveSettings(); applySettings();
+  updateSpeedDisplay(currentSpeed);
+  // update max label
+  const mx = toDisplaySpeed(maxSpeed);
+  document.getElementById('ag-max').textContent = mx.toFixed(0);
+  document.getElementById('dg-max').textContent = mx.toFixed(0);
+}
+
+document.getElementById('tog-highaccuracy').addEventListener('change', e => {
+  settings.highAccuracy = e.target.checked; saveSettings();
+});
+document.getElementById('tog-autosave').addEventListener('change', e => {
+  settings.autosave = e.target.checked; saveSettings();
+});
+
+function toDisplaySpeed(kmh) {
+  return settings.units === 'kmh' ? kmh : kmh * 0.621371;
+}
+function maxDisplaySpeed() {
+  return settings.units === 'kmh' ? 160 : 100;
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  ANALOG GAUGE DRAWING
+// ═══════════════════════════════════════════════════════════════
+const CX=130, CY=130, R=105, START_ANG=-220, END_ANG=40;
+
+function polarToXY(angleDeg, r) {
+  const rad = (angleDeg - 90) * Math.PI / 180;
+  return { x: CX + r * Math.cos(rad), y: CY + r * Math.sin(rad) };
+}
+
+function arcPath(startDeg, endDeg, r) {
+  const s = polarToXY(startDeg, r);
+  const e = polarToXY(endDeg, r);
+  const large = (endDeg - startDeg + 360) % 360 > 180 ? 1 : 0;
+  return `M ${s.x} ${s.y} A ${r} ${r} 0 ${large} 1 ${e.x} ${e.y}`;
+}
+
+function drawAnalogGauge() {
+  const track = arcPath(START_ANG, END_ANG, R);
+  document.getElementById('ag-track').setAttribute('d', track);
+  document.getElementById('ag-fill').setAttribute('d', track);
+
+  // Ticks + labels
+  const tickG  = document.getElementById('ag-ticks');
+  const labelG = document.getElementById('ag-labels');
+  tickG.innerHTML = ''; labelG.innerHTML = '';
+  const range = END_ANG - START_ANG;
+  const maxSpd = 160; // internal always km/h
+
+  for (let spd = 0; spd <= maxSpd; spd += 10) {
+    const frac = spd / maxSpd;
+    const ang  = START_ANG + frac * range;
+    const isMaj = spd % 20 === 0;
+    const inner = polarToXY(ang, R - (isMaj ? 18 : 10));
+    const outer = polarToXY(ang, R - 2);
+    const l = document.createElementNS('http://www.w3.org/2000/svg','line');
+    l.setAttribute('x1', outer.x); l.setAttribute('y1', outer.y);
+    l.setAttribute('x2', inner.x); l.setAttribute('y2', inner.y);
+    l.setAttribute('stroke', isMaj ? '#3a5570' : '#1e3248');
+    l.setAttribute('stroke-width', isMaj ? '2' : '1');
+    l.setAttribute('stroke-linecap','round');
+    tickG.appendChild(l);
+
+    if (isMaj) {
+      const lp = polarToXY(ang, R - 28);
+      const t = document.createElementNS('http://www.w3.org/2000/svg','text');
+      t.setAttribute('x', lp.x); t.setAttribute('y', lp.y);
+      t.setAttribute('text-anchor','middle'); t.setAttribute('dominant-baseline','middle');
+      t.setAttribute('fill','#3a5570'); t.setAttribute('font-size','9');
+      t.setAttribute('font-family','Share Tech Mono,monospace');
+      t.textContent = spd;
+      labelG.appendChild(t);
     }
-  } else {
-    showNotice('ℹ️ DeviceMotion not available — GPS speed only.');
   }
+  updateAnalog(0);
 }
 
-function startAccel() {
-  window.addEventListener('devicemotion', onMotion);
-  accelListen = true;
+function updateAnalog(kmh) {
+  const maxKmh = 160;
+  const frac = Math.min(kmh / maxKmh, 1);
+  const range = END_ANG - START_ANG;
+  const fillEnd = START_ANG + frac * range;
+
+  // Fill arc
+  if (frac > 0.001) {
+    document.getElementById('ag-fill').setAttribute('d', arcPath(START_ANG, fillEnd, R));
+    document.getElementById('ag-fill').style.display = '';
+  } else {
+    document.getElementById('ag-fill').style.display = 'none';
+  }
+
+  // Needle rotation
+  const needleDeg = START_ANG + frac * range;
+  document.getElementById('ag-needle').style.transform = `rotate(${needleDeg + 90}deg)`;
+
+  // Color by speed
+  let col = '#00ff88';
+  if (kmh > 130) col = '#ff3d5a';
+  else if (kmh > 80) col = '#00c8ff';
+  document.getElementById('ag-fill').style.stroke = col;
+  document.getElementById('ag-fill').style.filter = `drop-shadow(0 0 8px ${col})`;
 }
 
-function stopLogging() {
+// ═══════════════════════════════════════════════════════════════
+//  SPEED DISPLAY
+// ═══════════════════════════════════════════════════════════════
+function updateSpeedDisplay(kmh) {
+  currentSpeed = kmh;
+  const disp = toDisplaySpeed(kmh);
+  const dispMax = toDisplaySpeed(maxSpeed);
+
+  // Analog
+  document.getElementById('ag-speed').textContent = Math.round(disp);
+  document.getElementById('ag-max').textContent = dispMax.toFixed(0);
+  updateAnalog(kmh); // always internal kmh for gauge geometry
+
+  // Digital
+  document.getElementById('dg-speed').textContent = Math.round(disp);
+  document.getElementById('dg-max').textContent = dispMax.toFixed(0);
+  const pct = Math.min(kmh / 160 * 100, 100);
+  document.getElementById('dg-bar').style.width = pct + '%';
+  let col = '#00ff88';
+  if (kmh > 130) col = '#ff3d5a';
+  else if (kmh > 80) col = '#00c8ff';
+  document.getElementById('dg-speed').style.color = col;
+  document.getElementById('dg-bar').style.background = `linear-gradient(90deg,${col},#00c8ff)`;
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  SIGNAL BARS (satellite simulation via accuracy)
+// ═══════════════════════════════════════════════════════════════
+function updateSignal(accuracy, sats) {
+  // Use accuracy as a proxy: <5m=4 bars, <15=3, <30=2, else 1
+  let bars = accuracy == null ? 0 : accuracy < 5 ? 4 : accuracy < 15 ? 3 : accuracy < 30 ? 2 : 1;
+  for (let i = 1; i <= 4; i++) {
+    document.getElementById('sb'+i).classList.toggle('on', i <= bars);
+  }
+  document.getElementById('gnss-sats').textContent = sats !== null ? sats : '—';
+  document.getElementById('gnss-acc').textContent  = accuracy != null ? accuracy.toFixed(0)+'m' : '—';
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  GPS / TRIP LOGIC
+// ═══════════════════════════════════════════════════════════════
+function startTrip() {
+  if (!navigator.geolocation) { toast('Geolocation not supported'); return; }
+
+  running = true;
+  currentLog = [];
+  maxSpeed = 0; prevSpeedMs = null; prevTimeMs = null;
+  totalDistKm = 0; prevLat = null; prevLon = null;
+  speedSum = 0; speedCount = 0; peakAccel = 0; currentAccel = 0;
+  tripStartTime = Date.now();
+
+  document.getElementById('btn-start').disabled = true;
+  document.getElementById('btn-stop').disabled  = false;
+  document.getElementById('rec-dot').classList.add('active');
+
+  // Timer
+  timerInterval = setInterval(updateTimer, 1000);
+
+  watchId = navigator.geolocation.watchPosition(onGPS, onGPSErr, {
+    enableHighAccuracy: settings.highAccuracy,
+    maximumAge: 0, timeout: 15000
+  });
+}
+
+function stopTrip() {
+  if (!running) return;
   running = false;
   if (watchId !== null) { navigator.geolocation.clearWatch(watchId); watchId = null; }
-  if (accelListen) { window.removeEventListener('devicemotion', onMotion); accelListen = false; }
-  setStatus('', 'OFFLINE');
-  btnState(false);
-  showToast('Session stopped — ' + log.length + ' points logged');
+  clearInterval(timerInterval);
+  document.getElementById('btn-start').disabled = false;
+  document.getElementById('btn-stop').disabled  = true;
+  document.getElementById('rec-dot').classList.remove('active');
+
+  if (currentLog.length === 0) { toast('No data recorded'); return; }
+
+  if (settings.autosave) {
+    const name = 'Trip ' + new Date().toLocaleDateString();
+    saveCurrentTrip(name);
+  } else {
+    showSummaryModal();
+  }
 }
 
 function onGPS(pos) {
-  const { latitude, longitude, altitude, heading, accuracy } = pos.coords;
-  const speedMs = pos.coords.speed || 0;
+  const { latitude: lat, longitude: lon, altitude: alt,
+          heading, accuracy, speed: rawSpd } = pos.coords;
+  const speedMs  = rawSpd != null && rawSpd >= 0 ? rawSpd : 0;
   const speedKmh = speedMs * 3.6;
-  const now = pos.timestamp;
+  const now      = pos.timestamp;
 
-  // GPS-derived acceleration (Δv/Δt)
-  let gpsAccel = 0;
-  if (prevSpeed !== null && prevTime !== null) {
-    const dt = (now - prevTime) / 1000;
-    if (dt > 0) gpsAccel = (speedMs - prevSpeed) / dt;
+  // GPS acceleration
+  let accel = 0;
+  if (prevSpeedMs !== null && prevTimeMs !== null) {
+    const dt = (now - prevTimeMs) / 1000;
+    if (dt > 0) accel = (speedMs - prevSpeedMs) / dt;
   }
-  prevSpeed = speedMs; prevTime = now;
+  prevSpeedMs = speedMs; prevTimeMs = now;
+  currentAccel = accel;
+  if (Math.abs(accel) > peakAccel) peakAccel = Math.abs(accel);
+
+  // Distance
+  if (prevLat !== null) {
+    totalDistKm += haversine(prevLat, prevLon, lat, lon);
+  }
+  prevLat = lat; prevLon = lon;
 
   // Max speed
   if (speedKmh > maxSpeed) maxSpeed = speedKmh;
 
-  // Sensor magnitude
-  const sensorAccelMag = Math.sqrt(ax*ax + ay*ay + az*az);
+  // Average
+  speedSum += speedKmh; speedCount++;
 
-  // Update UI
-  setStatus('active', 'LOGGING');
-  updateSpeed(speedKmh);
-  document.getElementById('accuracy-val').textContent = accuracy ? accuracy.toFixed(0) : '—';
-  document.getElementById('lat-val').textContent  = latitude  ? latitude.toFixed(6)  : '—';
-  document.getElementById('lon-val').textContent  = longitude ? longitude.toFixed(6) : '—';
-  document.getElementById('alt-val').textContent  = altitude  != null ? altitude.toFixed(1)+'m' : '—';
-  document.getElementById('hdg-val').textContent  = heading   != null ? heading.toFixed(1)+'°' : '—';
-  document.getElementById('accel-val').textContent = gpsAccel.toFixed(2);
-  document.getElementById('speed-max').textContent = maxSpeed.toFixed(1);
+  // Signal
+  // Satellite count not directly available in Web Geolocation API, estimate from accuracy
+  const estSats = accuracy < 5 ? '12+' : accuracy < 10 ? '8-11' : accuracy < 20 ? '5-7' : '<5';
+  updateSignal(accuracy, estSats);
 
   // Log entry
-  if (running) {
-    const entry = {
-      time: new Date(now).toISOString(),
-      speed_kmh: speedKmh.toFixed(2),
-      gps_accel_ms2: gpsAccel.toFixed(3),
-      sensor_accel_mag: sensorAccelMag.toFixed(3),
-      ax: ax.toFixed(3), ay: ay.toFixed(3), az: az.toFixed(3),
-      lat: latitude.toFixed(7),
-      lon: longitude.toFixed(7),
-      alt: altitude != null ? altitude.toFixed(2) : '',
-      heading: heading != null ? heading.toFixed(1) : '',
-      accuracy: accuracy ? accuracy.toFixed(1) : ''
-    };
-    log.push(entry);
-    addLogRow(entry);
-    document.getElementById('points-val').textContent = log.length;
+  currentLog.push({
+    t: new Date(now).toISOString(),
+    speedKmh: +speedKmh.toFixed(3),
+    accel: +accel.toFixed(3),
+    lat: +lat.toFixed(7), lon: +lon.toFixed(7),
+    alt: alt != null ? +alt.toFixed(2) : null,
+    heading: heading != null ? +heading.toFixed(1) : null,
+    accuracy: +accuracy.toFixed(1)
+  });
+
+  // Update dashboard
+  updateSpeedDisplay(speedKmh);
+  const avgSpd = speedCount > 0 ? speedSum / speedCount : 0;
+  document.getElementById('stat-dist').textContent  = totalDistKm.toFixed(2);
+  document.getElementById('stat-accel').textContent = accel.toFixed(2);
+  document.getElementById('stat-avg').textContent   = toDisplaySpeed(avgSpd).toFixed(1);
+  document.getElementById('sec-peak-accel').textContent = peakAccel.toFixed(2) + ' m/s²';
+  document.getElementById('sec-heading').textContent = heading != null ? bearingLabel(heading) : '—';
+  document.getElementById('sec-alt').textContent = alt != null ? alt.toFixed(1) + ' m' : '—';
+  document.getElementById('sec-coords').textContent = lat.toFixed(4) + ', ' + lon.toFixed(4);
+}
+
+function onGPSErr(err) {
+  const msgs = {1:'Permission denied — check browser settings',2:'Position unavailable',3:'GPS timeout'};
+  toast('GPS: ' + (msgs[err.code] || err.message));
+}
+
+function updateTimer() {
+  if (!tripStartTime) return;
+  const s = Math.floor((Date.now() - tripStartTime) / 1000);
+  const h = String(Math.floor(s/3600)).padStart(2,'0');
+  const m = String(Math.floor((s%3600)/60)).padStart(2,'0');
+  const sec = String(s%60).padStart(2,'0');
+  document.getElementById('trip-timer').textContent = `${h}:${m}:${sec}`;
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  SUMMARY MODAL
+// ═══════════════════════════════════════════════════════════════
+function showSummaryModal() {
+  const dur = tripStartTime ? Math.floor((Date.now()-tripStartTime)/1000) : 0;
+  const avgSpd = speedCount > 0 ? speedSum/speedCount : 0;
+
+  const grid = document.getElementById('summary-grid');
+  grid.innerHTML = '';
+  const items = [
+    {val: fmtDuration(dur),             lbl:'Duration',    cls:''},
+    {val: toDisplaySpeed(maxSpeed).toFixed(1)+' '+unitLabel(), lbl:'Top Speed', cls:'red'},
+    {val: totalDistKm.toFixed(2)+' km', lbl:'Distance',    cls:'green'},
+    {val: toDisplaySpeed(avgSpd).toFixed(1)+' '+unitLabel(), lbl:'Avg Speed',  cls:''},
+    {val: peakAccel.toFixed(2)+' m/s²', lbl:'Peak Accel',  cls:''},
+    {val: currentLog.length+' pts',     lbl:'GPS Points',  cls:''},
+  ];
+  items.forEach(it => {
+    const c = document.createElement('div'); c.className='sum-card';
+    c.innerHTML = `<div class="sum-val ${it.cls}">${it.val}</div><div class="sum-lbl">${it.lbl}</div>`;
+    grid.appendChild(c);
+  });
+
+  document.getElementById('trip-name-input').value =
+    'Trip ' + new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});
+  document.getElementById('modal-summary').classList.add('show');
+}
+
+function saveTrip() {
+  const name = document.getElementById('trip-name-input').value.trim() ||
+    'Trip ' + new Date().toLocaleDateString();
+  saveCurrentTrip(name);
+  closeModal('modal-summary');
+}
+function discardTrip() {
+  closeModal('modal-summary');
+  currentLog = [];
+  toast('Trip discarded');
+}
+
+function saveCurrentTrip(name) {
+  const dur = tripStartTime ? Math.floor((Date.now()-tripStartTime)/1000) : 0;
+  const avgSpd = speedCount > 0 ? speedSum/speedCount : 0;
+  const trip = {
+    id: Date.now(),
+    name,
+    date: new Date().toISOString(),
+    duration: dur,
+    maxSpeedKmh: +maxSpeed.toFixed(2),
+    avgSpeedKmh: +avgSpd.toFixed(2),
+    distKm: +totalDistKm.toFixed(3),
+    peakAccel: +peakAccel.toFixed(3),
+    points: currentLog.length,
+    log: currentLog
+  };
+  trips.unshift(trip);
+  persistTrips();
+  renderTrips();
+  toast('Trip saved: ' + name);
+  currentLog = [];
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  TRIPS LIST
+// ═══════════════════════════════════════════════════════════════
+function loadTrips() {
+  try { const t = localStorage.getItem('vl_trips'); if(t) trips = JSON.parse(t); } catch(e){}
+}
+function persistTrips() {
+  try { localStorage.setItem('vl_trips', JSON.stringify(trips)); } catch(e) {
+    toast('Storage full — export trips to free space');
   }
 }
 
-function onGPSError(err) {
-  setStatus('error', 'GPS ERR');
-  const msgs = {1:'Permission denied',2:'Position unavailable',3:'Timeout'};
-  showNotice('❌ GPS Error: ' + (msgs[err.code] || err.message));
+function renderTrips() {
+  const el = document.getElementById('trips-list');
+  if (!trips.length) {
+    el.innerHTML = '<div class="empty-state">No saved trips yet.<br>Start a trip on the Dashboard tab.</div>';
+    return;
+  }
+  el.innerHTML = '';
+  trips.forEach(tr => {
+    const sel = compareIds.includes(tr.id);
+    const card = document.createElement('div');
+    card.className = 'trip-card';
+    if (sel) card.style.borderColor = 'var(--warn)';
+    const d = new Date(tr.date);
+    const dateStr = d.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}) +
+                    ' ' + d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+    card.innerHTML = `
+      <div class="trip-card-hdr">
+        <div>
+          <div class="trip-name">${tr.name}</div>
+          <div class="trip-date">${dateStr}</div>
+        </div>
+        ${sel ? '<span style="color:var(--warn);font-size:.7rem;font-weight:700">✓ SELECTED</span>' : ''}
+      </div>
+      <div class="trip-stats-mini">
+        <div class="tsm-item"><span class="tsm-val">${toDisplaySpeed(tr.maxSpeedKmh).toFixed(0)}</span><span class="tsm-lbl">Top ${unitLabel()}</span></div>
+        <div class="tsm-item"><span class="tsm-val">${tr.distKm.toFixed(1)}</span><span class="tsm-lbl">km</span></div>
+        <div class="tsm-item"><span class="tsm-val">${fmtDuration(tr.duration)}</span><span class="tsm-lbl">Time</span></div>
+        <div class="tsm-item"><span class="tsm-val">${tr.peakAccel.toFixed(1)}</span><span class="tsm-lbl">m/s²</span></div>
+      </div>
+      <div class="trip-actions">
+        <button class="ta-btn view" onclick="viewTrip(${tr.id})">📋 Detail</button>
+        <button class="ta-btn compare" onclick="toggleCompare(${tr.id})">⚖ Compare</button>
+        <button class="ta-btn del" onclick="deleteTrip(${tr.id})">🗑 Delete</button>
+      </div>`;
+    el.appendChild(card);
+  });
 }
 
-// ─── Motion ─────────────────────────────────────────────────────────────────
-function onMotion(e) {
-  const a = e.accelerationIncludingGravity || e.acceleration;
-  if (!a) return;
-  ax = a.x || 0; ay = a.y || 0; az = a.z || 0;
-
-  // Update bars (max ±20 m/s²)
-  updateBar('bar-x', 'ax-val', ax);
-  updateBar('bar-y', 'ay-val', ay);
-  updateBar('bar-z', 'az-val', az);
+function deleteTrip(id) {
+  if (!confirm('Delete this trip?')) return;
+  trips = trips.filter(t => t.id !== id);
+  compareIds = compareIds.filter(x => x !== id);
+  persistTrips();
+  renderTrips();
+  updateCompareBar();
+  toast('Trip deleted');
 }
 
-function updateBar(id, valId, val) {
-  const max = 20;
-  const pct = Math.min(Math.abs(val) / max * 50, 50);
-  const bar = document.getElementById(id);
-  document.getElementById(valId).textContent = val.toFixed(2);
-  if (val >= 0) { bar.style.left='50%'; bar.style.width=pct+'%'; }
-  else           { bar.style.left=(50-pct)+'%'; bar.style.width=pct+'%'; }
+function viewTrip(id) {
+  const tr = trips.find(t => t.id === id);
+  if (!tr) return;
+  detailTripId = id;
+  document.getElementById('detail-title').textContent = tr.name;
+  const grid = document.getElementById('detail-grid');
+  grid.innerHTML = '';
+  const items = [
+    {val:fmtDuration(tr.duration),              lbl:'Duration',   cls:''},
+    {val:toDisplaySpeed(tr.maxSpeedKmh).toFixed(1)+' '+unitLabel(), lbl:'Top Speed', cls:'red'},
+    {val:tr.distKm.toFixed(2)+' km',            lbl:'Distance',   cls:'green'},
+    {val:toDisplaySpeed(tr.avgSpeedKmh).toFixed(1)+' '+unitLabel(), lbl:'Avg Speed', cls:''},
+    {val:tr.peakAccel.toFixed(2)+' m/s²',       lbl:'Peak Accel', cls:''},
+    {val:tr.points+' pts',                       lbl:'GPS Points', cls:''},
+  ];
+  items.forEach(it => {
+    const c = document.createElement('div'); c.className='sum-card';
+    c.innerHTML=`<div class="sum-val ${it.cls}">${it.val}</div><div class="sum-lbl">${it.lbl}</div>`;
+    grid.appendChild(c);
+  });
+  document.getElementById('modal-detail').classList.add('show');
 }
 
-// ─── Gauge ───────────────────────────────────────────────────────────────────
-function updateSpeed(kmh) {
-  const el = document.getElementById('speed-val');
-  el.textContent = Math.round(kmh);
-
-  // Color based on speed
-  if      (kmh > 120) el.style.color = 'var(--accent2)';
-  else if (kmh > 60)  el.style.color = 'var(--accent)';
-  else                el.style.color = 'var(--accent3)';
-
-  // Arc gauge (0–160 km/h)
-  const fill = document.getElementById('gauge-fill');
-  const total = 283; // arc length
-  const ratio = Math.min(kmh / 160, 1);
-  fill.style.strokeDashoffset = total - ratio * total;
-  fill.style.stroke = kmh > 120 ? 'var(--accent2)' : kmh > 60 ? 'var(--accent)' : 'var(--accent3)';
+// ── COMPARE ──────────────────────────────────────────────────────
+function toggleCompare(id) {
+  if (compareIds.includes(id)) {
+    compareIds = compareIds.filter(x => x !== id);
+  } else {
+    if (compareIds.length >= 2) { toast('Select max 2 trips'); return; }
+    compareIds.push(id);
+  }
+  updateCompareBar();
+  renderTrips();
 }
 
-// ─── Log table ───────────────────────────────────────────────────────────────
-function addLogRow(e) {
-  const body = document.getElementById('log-body');
-  // Clear placeholder
-  if (log.length === 1) body.innerHTML = '';
-
-  const row = document.createElement('div');
-  row.className = 'log-row';
-  const t = e.time.split('T')[1].split('.')[0];
-  row.innerHTML = `
-    <span>${t}</span>
-    <span>${e.speed_kmh} km/h</span>
-    <span>${e.gps_accel_ms2} m/s²</span>
-    <span>${e.lat}, ${e.lon}</span>
-  `;
-  body.prepend(row);
-  document.getElementById('log-count').textContent = log.length + ' entries';
+function updateCompareBar() {
+  const bar = document.getElementById('compare-bar');
+  const goBtn = document.getElementById('compare-go-btn');
+  const info = document.getElementById('compare-info');
+  if (compareIds.length > 0) {
+    bar.classList.add('show');
+    info.textContent = compareIds.length === 1 ? 'Select 1 more trip' : '2 trips selected';
+    goBtn.disabled = compareIds.length < 2;
+  } else {
+    bar.classList.remove('show');
+  }
 }
 
-function clearLog() {
-  document.getElementById('log-body').innerHTML =
-    '<div style="font-size:.65rem;color:var(--dim);text-align:center;padding:20px 0;">Acquiring GPS signal…</div>';
-  document.getElementById('log-count').textContent = '0 entries';
-  document.getElementById('points-val').textContent = '0';
+function openCompare() {
+  if (compareIds.length < 2) return;
+  const [a, b] = compareIds.map(id => trips.find(t => t.id === id));
+  if (!a || !b) return;
+
+  const tbl = document.getElementById('compare-table');
+  const rows = [
+    {label:'Duration',     va:fmtDuration(a.duration), vb:fmtDuration(b.duration), numA:a.duration, numB:b.duration, higherIsBetter:true},
+    {label:`Top Speed (${unitLabel()})`, va:toDisplaySpeed(a.maxSpeedKmh).toFixed(1), vb:toDisplaySpeed(b.maxSpeedKmh).toFixed(1), numA:a.maxSpeedKmh, numB:b.maxSpeedKmh, higherIsBetter:true},
+    {label:'Distance (km)',va:a.distKm.toFixed(2),     vb:b.distKm.toFixed(2),     numA:a.distKm,     numB:b.distKm,     higherIsBetter:true},
+    {label:`Avg Speed (${unitLabel()})`,  va:toDisplaySpeed(a.avgSpeedKmh).toFixed(1), vb:toDisplaySpeed(b.avgSpeedKmh).toFixed(1), numA:a.avgSpeedKmh, numB:b.avgSpeedKmh, higherIsBetter:true},
+    {label:'Peak Accel (m/s²)',va:a.peakAccel.toFixed(2), vb:b.peakAccel.toFixed(2), numA:a.peakAccel, numB:b.peakAccel, higherIsBetter:true},
+    {label:'GPS Points',   va:a.points+'', vb:b.points+'', numA:a.points, numB:b.points, higherIsBetter:true},
+  ];
+
+  tbl.innerHTML = `<tr><th>Metric</th><th>${a.name}</th><th>${b.name}</th></tr>` +
+    rows.map(r => {
+      const aBetter = r.higherIsBetter ? r.numA > r.numB : r.numA < r.numB;
+      const tie = r.numA === r.numB;
+      return `<tr>
+        <td class="name">${r.label}</td>
+        <td class="${tie?'':aBetter?'better':'worse'}">${r.va}</td>
+        <td class="${tie?'':aBetter?'worse':'better'}">${r.vb}</td>
+      </tr>`;
+    }).join('');
+
+  document.getElementById('modal-compare').classList.add('show');
 }
 
-// ─── Export ──────────────────────────────────────────────────────────────────
-function exportCSV() {
-  if (!log.length) { showToast('No data to export'); return; }
-  const headers = Object.keys(log[0]).join(',');
-  const rows = log.map(r => Object.values(r).join(','));
-  const csv = [headers, ...rows].join('\n');
-  const blob = new Blob([csv], {type:'text/csv'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = 'velolog_' + new Date().toISOString().slice(0,19).replace(/:/g,'-') + '.csv';
-  a.click();
+// ═══════════════════════════════════════════════════════════════
+//  EXPORT
+// ═══════════════════════════════════════════════════════════════
+function exportTripCSV() {
+  const tr = trips.find(t => t.id === detailTripId);
+  if (!tr || !tr.log?.length) { toast('No log data'); return; }
+  const hdrs = Object.keys(tr.log[0]).join(',');
+  const rows = tr.log.map(e => Object.values(e).join(','));
+  const csv = [hdrs,...rows].join('\n');
+  dlCSV(csv, tr.name.replace(/\s+/g,'-') + '.csv');
+}
+
+function exportAllTrips() {
+  if (!trips.length) { toast('No trips to export'); return; }
+  const rows = ['id,name,date,duration_s,max_speed_kmh,avg_speed_kmh,dist_km,peak_accel,points'];
+  trips.forEach(t => rows.push([t.id,t.name,t.date,t.duration,t.maxSpeedKmh,t.avgSpeedKmh,t.distKm,t.peakAccel,t.points].join(',')));
+  dlCSV(rows.join('\n'), 'velolog-all-trips.csv');
+}
+
+function dlCSV(csv, fname) {
+  const blob = new Blob([csv],{type:'text/csv'});
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url; a.download = fname; a.click();
   URL.revokeObjectURL(url);
-  showToast('CSV exported — ' + log.length + ' rows');
+  toast('Exported: ' + fname);
 }
 
-// ─── UI helpers ──────────────────────────────────────────────────────────────
-function setStatus(cls, text) {
-  const dot = document.getElementById('status-dot');
-  dot.className = 'status-dot ' + cls;
-  document.getElementById('status-text').textContent = text;
+function clearAllTrips() {
+  if (!confirm('Delete ALL saved trips? This cannot be undone.')) return;
+  trips = []; compareIds = [];
+  persistTrips(); renderTrips(); updateCompareBar();
+  toast('All trips cleared');
 }
 
-function btnState(isRunning) {
-  document.getElementById('btn-start').disabled  =  isRunning;
-  document.getElementById('btn-stop').disabled   = !isRunning;
-  document.getElementById('btn-export').disabled = isRunning || log.length === 0;
-  if (!isRunning && log.length > 0)
-    document.getElementById('btn-export').disabled = false;
+// ═══════════════════════════════════════════════════════════════
+//  UTILS
+// ═══════════════════════════════════════════════════════════════
+function haversine(lat1,lon1,lat2,lon2) {
+  const R=6371, dLat=(lat2-lat1)*Math.PI/180, dLon=(lon2-lon1)*Math.PI/180;
+  const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
 }
 
-function showNotice(msg) {
-  const n = document.getElementById('notice');
-  n.textContent = msg; n.classList.add('show');
-  setTimeout(() => n.classList.remove('show'), 6000);
+function fmtDuration(s) {
+  const h=Math.floor(s/3600), m=Math.floor((s%3600)/60), sec=s%60;
+  return h>0 ? `${h}h ${m}m` : `${m}m ${sec}s`;
 }
 
-function showToast(msg) {
+function bearingLabel(deg) {
+  const dirs=['N','NE','E','SE','S','SW','W','NW'];
+  return dirs[Math.round(deg/45)%8] + ' ' + deg.toFixed(0) + '°';
+}
+
+function unitLabel() { return settings.units === 'kmh' ? 'km/h' : 'mph'; }
+
+function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+
+function toast(msg) {
   const t = document.getElementById('toast');
   t.textContent = msg; t.classList.add('show');
   setTimeout(() => t.classList.remove('show'), 3000);
 }
+
+// ═══════════════════════════════════════════════════════════════
+//  BOOT
+// ═══════════════════════════════════════════════════════════════
+init();
 </script>
 </body>
 </html>
