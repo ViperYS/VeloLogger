@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#0a0f1a">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>VeloLog — GPS Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:       #050c18;
+    --panel:    #0b1628;
+    --border:   #1a2d4a;
+    --accent:   #00e5ff;
+    --accent2:  #ff4b4b;
+    --accent3:  #39ff14;
+    --text:     #c8dff0;
+    --dim:      #4a6680;
+    --glow:     0 0 20px rgba(0,229,255,.35);
+    --glow2:    0 0 20px rgba(255,75,75,.35);
+    --glow3:    0 0 20px rgba(57,255,20,.35);
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Space Mono', monospace;
+    min-height: 100dvh;
+    overflow-x: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Scanline overlay */
+  body::before {
+    content:'';
+    position:fixed; inset:0; pointer-events:none; z-index:999;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,0,0,.06) 2px,
+      rgba(0,0,0,.06) 4px
+    );
+  }
+
+  /* Header */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--border);
+    background: var(--panel);
+    position: sticky; top:0; z-index:10;
+  }
+  header h1 {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 1.1rem;
+    font-weight: 900;
+    letter-spacing: .15em;
+    color: var(--accent);
+    text-shadow: var(--glow);
+  }
+  .status-dot {
+    width: 10px; height:10px; border-radius:50%;
+    background: var(--dim);
+    transition: background .4s, box-shadow .4s;
+  }
+  .status-dot.active { background: var(--accent3); box-shadow: var(--glow3); }
+  .status-dot.error  { background: var(--accent2); box-shadow: var(--glow2); }
+
+  /* Main layout */
+  main {
+    flex:1;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: 14px;
+    max-width: 480px;
+    width: 100%;
+    margin: 0 auto;
+  }
+
+  /* Big speed dial */
+  .speed-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .speed-card::after {
+    content:'';
+    position:absolute;
+    top:-40%; left:50%;
+    transform:translateX(-50%);
+    width:260px; height:260px;
+    border-radius:50%;
+    background: radial-gradient(circle, rgba(0,229,255,.07) 0%, transparent 70%);
+    pointer-events:none;
+  }
+  .speed-label {
+    font-size:.65rem; letter-spacing:.2em; color:var(--dim);
+    text-transform:uppercase; margin-bottom:4px;
+  }
+  .speed-value {
+    font-family:'Orbitron',sans-serif;
+    font-size: 5.5rem;
+    font-weight:900;
+    line-height:1;
+    color: var(--accent);
+    text-shadow: var(--glow);
+    transition: color .3s;
+  }
+  .speed-unit {
+    font-size:.75rem; letter-spacing:.15em; color:var(--dim);
+    margin-top:4px;
+  }
+  .speed-max {
+    margin-top:8px;
+    font-size:.7rem; color:var(--dim);
+  }
+  .speed-max span { color: var(--accent); }
+
+  /* Arc gauge */
+  .gauge-wrap {
+    margin: 8px 0 4px;
+    width: 200px; height: 100px;
+    position:relative;
+  }
+  .gauge-wrap svg { width:100%; height:100%; overflow:visible; }
+  #gauge-track { stroke: var(--border); stroke-width:10; fill:none; }
+  #gauge-fill  { stroke: var(--accent); stroke-width:10; fill:none;
+                 stroke-linecap:round;
+                 filter: drop-shadow(0 0 6px var(--accent));
+                 transition: stroke-dashoffset .4s cubic-bezier(.4,0,.2,1),
+                             stroke .3s; }
+
+  /* Stats row */
+  .stats-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 10px;
+  }
+  .stat-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+  .stat-icon { font-size:1.3rem; }
+  .stat-val {
+    font-family:'Orbitron',sans-serif;
+    font-size:1.05rem; font-weight:700;
+    color: var(--accent);
+  }
+  .stat-val.red   { color:var(--accent2); text-shadow:var(--glow2); }
+  .stat-val.green { color:var(--accent3); text-shadow:var(--glow3); }
+  .stat-lbl { font-size:.55rem; letter-spacing:.15em; color:var(--dim); text-transform:uppercase; }
+
+  /* Accel bars */
+  .accel-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+  }
+  .accel-title {
+    font-size:.65rem; letter-spacing:.2em; color:var(--dim);
+    text-transform:uppercase; margin-bottom:12px;
+  }
+  .accel-axis {
+    display:flex; align-items:center; gap:10px; margin-bottom:10px;
+  }
+  .axis-name {
+    width:16px; font-size:.7rem; color:var(--dim); flex-shrink:0;
+  }
+  .bar-track {
+    flex:1; height:12px; border-radius:6px;
+    background: rgba(255,255,255,.05);
+    position:relative; overflow:hidden;
+  }
+  .bar-fill {
+    position:absolute; top:0; height:100%;
+    border-radius:6px;
+    transition: width .12s, left .12s;
+  }
+  .bar-fill.x { background: var(--accent);  box-shadow: var(--glow);  }
+  .bar-fill.y { background: var(--accent3); box-shadow: var(--glow3); }
+  .bar-fill.z { background: var(--accent2); box-shadow: var(--glow2); }
+  .axis-val {
+    width: 52px; text-align:right;
+    font-size:.72rem; font-family:'Orbitron',sans-serif;
+    color: var(--text);
+  }
+
+  /* GPS info */
+  .gps-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .gps-item { display:flex; flex-direction:column; gap:2px; }
+  .gps-lbl  { font-size:.55rem; letter-spacing:.18em; color:var(--dim); text-transform:uppercase; }
+  .gps-val  { font-size:.82rem; font-family:'Orbitron',sans-serif; color:var(--text); word-break:break-all; }
+
+  /* Log table */
+  .log-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    flex:1;
+  }
+  .log-header {
+    display:flex; justify-content:space-between; align-items:center;
+    margin-bottom:10px;
+  }
+  .log-title {
+    font-size:.65rem; letter-spacing:.2em; color:var(--dim);
+    text-transform:uppercase;
+  }
+  .log-count {
+    font-size:.65rem; color:var(--dim);
+    font-family:'Orbitron',sans-serif;
+  }
+  #log-body {
+    max-height: 160px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+  .log-row {
+    display:grid;
+    grid-template-columns: 55px 60px 75px 1fr;
+    gap:6px;
+    font-size:.62rem;
+    padding:5px 0;
+    border-bottom:1px solid rgba(255,255,255,.04);
+    color:var(--dim);
+    animation: fadeIn .2s ease;
+  }
+  .log-row span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .log-row span:first-child { color:var(--accent); }
+  @keyframes fadeIn { from{opacity:0;transform:translateY(-4px)} to{opacity:1;transform:none} }
+
+  /* Controls */
+  .controls {
+    display:grid; grid-template-columns:1fr 1fr; gap:10px;
+    padding: 0 0 8px;
+  }
+  .btn {
+    padding: 14px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    font-family:'Orbitron',sans-serif;
+    font-size:.72rem; letter-spacing:.1em;
+    cursor:pointer;
+    transition: all .2s;
+    text-transform:uppercase;
+  }
+  .btn-start {
+    background: rgba(57,255,20,.08);
+    color: var(--accent3);
+    border-color: rgba(57,255,20,.3);
+  }
+  .btn-start:active, .btn-start.active {
+    background: rgba(57,255,20,.18);
+    box-shadow: var(--glow3);
+  }
+  .btn-stop {
+    background: rgba(255,75,75,.08);
+    color: var(--accent2);
+    border-color: rgba(255,75,75,.3);
+  }
+  .btn-stop:active { background: rgba(255,75,75,.18); box-shadow: var(--glow2); }
+  .btn-export {
+    background: rgba(0,229,255,.06);
+    color: var(--accent);
+    border-color: rgba(0,229,255,.25);
+    grid-column: 1/-1;
+  }
+  .btn-export:active { background: rgba(0,229,255,.14); box-shadow: var(--glow); }
+  .btn:disabled { opacity:.35; pointer-events:none; }
+
+  /* Permission notice */
+  .notice {
+    background: rgba(255,75,75,.08);
+    border: 1px solid rgba(255,75,75,.25);
+    border-radius:10px; padding:12px 14px;
+    font-size:.7rem; line-height:1.6;
+    color: #ff8080;
+    display:none;
+  }
+  .notice.show { display:block; }
+
+  /* Toast */
+  .toast {
+    position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(80px);
+    background: var(--panel); border:1px solid var(--border);
+    border-radius:10px; padding:10px 20px;
+    font-size:.75rem; color:var(--accent);
+    transition: transform .3s cubic-bezier(.4,0,.2,1);
+    z-index:1000; white-space:nowrap;
+  }
+  .toast.show { transform:translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>⚡ VELOLOG</h1>
+  <div style="display:flex;align-items:center;gap:8px;">
+    <span id="status-text" style="font-size:.65rem;letter-spacing:.1em;color:var(--dim)">OFFLINE</span>
+    <div class="status-dot" id="status-dot"></div>
+  </div>
+</header>
+
+<main>
+  <!-- Speed card -->
+  <div class="speed-card">
+    <div class="speed-label">GPS SPEED</div>
+    <div class="gauge-wrap">
+      <svg viewBox="0 0 200 100">
+        <path id="gauge-track" d="M 10,100 A 90,90 0 0 1 190,100"/>
+        <path id="gauge-fill"  d="M 10,100 A 90,90 0 0 1 190,100"
+              stroke-dasharray="283" stroke-dashoffset="283"/>
+      </svg>
+    </div>
+    <div class="speed-value" id="speed-val">0</div>
+    <div class="speed-unit">KM/H</div>
+    <div class="speed-max">MAX: <span id="speed-max">0</span> km/h</div>
+  </div>
+
+  <!-- Stats row -->
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-icon">🏎️</div>
+      <div class="stat-val green" id="accel-val">0.00</div>
+      <div class="stat-lbl">Accel m/s²</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">📍</div>
+      <div class="stat-val" id="accuracy-val">—</div>
+      <div class="stat-lbl">Accuracy m</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">📊</div>
+      <div class="stat-val" id="points-val">0</div>
+      <div class="stat-lbl">Points</div>
+    </div>
+  </div>
+
+  <!-- Accelerometer bars -->
+  <div class="accel-card">
+    <div class="accel-title">⚡ Raw Accelerometer (m/s²)</div>
+    <div class="accel-axis">
+      <span class="axis-name">X</span>
+      <div class="bar-track">
+        <div class="bar-fill x" id="bar-x" style="left:50%;width:0%"></div>
+      </div>
+      <span class="axis-val" id="ax-val">0.00</span>
+    </div>
+    <div class="accel-axis">
+      <span class="axis-name">Y</span>
+      <div class="bar-track">
+        <div class="bar-fill y" id="bar-y" style="left:50%;width:0%"></div>
+      </div>
+      <span class="axis-val" id="ay-val">0.00</span>
+    </div>
+    <div class="accel-axis">
+      <span class="axis-name">Z</span>
+      <div class="bar-track">
+        <div class="bar-fill z" id="bar-z" style="left:50%;width:0%"></div>
+      </div>
+      <span class="axis-val" id="az-val">0.00</span>
+    </div>
+  </div>
+
+  <!-- GPS info -->
+  <div class="gps-card">
+    <div class="gps-item">
+      <span class="gps-lbl">Latitude</span>
+      <span class="gps-val" id="lat-val">—</span>
+    </div>
+    <div class="gps-item">
+      <span class="gps-lbl">Longitude</span>
+      <span class="gps-val" id="lon-val">—</span>
+    </div>
+    <div class="gps-item">
+      <span class="gps-lbl">Altitude</span>
+      <span class="gps-val" id="alt-val">—</span>
+    </div>
+    <div class="gps-item">
+      <span class="gps-lbl">Heading</span>
+      <span class="gps-val" id="hdg-val">—</span>
+    </div>
+  </div>
+
+  <!-- Permission notice -->
+  <div class="notice" id="notice"></div>
+
+  <!-- Log -->
+  <div class="log-card">
+    <div class="log-header">
+      <span class="log-title">📋 Session Log</span>
+      <span class="log-count" id="log-count">0 entries</span>
+    </div>
+    <div id="log-body">
+      <div style="font-size:.65rem;color:var(--dim);text-align:center;padding:20px 0;">
+        Start logging to see data here
+      </div>
+    </div>
+  </div>
+
+  <!-- Controls -->
+  <div class="controls">
+    <button class="btn btn-start" id="btn-start" onclick="startLogging()">▶ START</button>
+    <button class="btn btn-stop"  id="btn-stop"  onclick="stopLogging()" disabled>■ STOP</button>
+    <button class="btn btn-export" id="btn-export" onclick="exportCSV()" disabled>⬇ EXPORT CSV</button>
+  </div>
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ─── State ──────────────────────────────────────────────────────────────────
+let watchId     = null;
+let accelListen = false;
+let running     = false;
+let log         = [];
+let maxSpeed    = 0;
+
+let ax = 0, ay = 0, az = 0;   // raw accelerometer
+let prevSpeed = null, prevTime = null;
+
+// ─── GPS ────────────────────────────────────────────────────────────────────
+function startLogging() {
+  if (!navigator.geolocation) {
+    showNotice('❌ Geolocation not supported by this browser.');
+    return;
+  }
+
+  running = true;
+  log = [];
+  maxSpeed = 0;
+  prevSpeed = null; prevTime = null;
+  setStatus('active', 'ACQUIRING');
+  btnState(true);
+  clearLog();
+
+  watchId = navigator.geolocation.watchPosition(onGPS, onGPSError, {
+    enableHighAccuracy: true,
+    maximumAge: 0,
+    timeout: 10000
+  });
+
+  // Accelerometer (DeviceMotion)
+  if (window.DeviceMotionEvent) {
+    if (typeof DeviceMotionEvent.requestPermission === 'function') {
+      // iOS 13+
+      DeviceMotionEvent.requestPermission().then(s => {
+        if (s === 'granted') startAccel();
+        else showNotice('⚠️ Motion permission denied. Accelerometer unavailable.');
+      });
+    } else {
+      startAccel();
+    }
+  } else {
+    showNotice('ℹ️ DeviceMotion not available — GPS speed only.');
+  }
+}
+
+function startAccel() {
+  window.addEventListener('devicemotion', onMotion);
+  accelListen = true;
+}
+
+function stopLogging() {
+  running = false;
+  if (watchId !== null) { navigator.geolocation.clearWatch(watchId); watchId = null; }
+  if (accelListen) { window.removeEventListener('devicemotion', onMotion); accelListen = false; }
+  setStatus('', 'OFFLINE');
+  btnState(false);
+  showToast('Session stopped — ' + log.length + ' points logged');
+}
+
+function onGPS(pos) {
+  const { latitude, longitude, altitude, heading, accuracy } = pos.coords;
+  const speedMs = pos.coords.speed || 0;
+  const speedKmh = speedMs * 3.6;
+  const now = pos.timestamp;
+
+  // GPS-derived acceleration (Δv/Δt)
+  let gpsAccel = 0;
+  if (prevSpeed !== null && prevTime !== null) {
+    const dt = (now - prevTime) / 1000;
+    if (dt > 0) gpsAccel = (speedMs - prevSpeed) / dt;
+  }
+  prevSpeed = speedMs; prevTime = now;
+
+  // Max speed
+  if (speedKmh > maxSpeed) maxSpeed = speedKmh;
+
+  // Sensor magnitude
+  const sensorAccelMag = Math.sqrt(ax*ax + ay*ay + az*az);
+
+  // Update UI
+  setStatus('active', 'LOGGING');
+  updateSpeed(speedKmh);
+  document.getElementById('accuracy-val').textContent = accuracy ? accuracy.toFixed(0) : '—';
+  document.getElementById('lat-val').textContent  = latitude  ? latitude.toFixed(6)  : '—';
+  document.getElementById('lon-val').textContent  = longitude ? longitude.toFixed(6) : '—';
+  document.getElementById('alt-val').textContent  = altitude  != null ? altitude.toFixed(1)+'m' : '—';
+  document.getElementById('hdg-val').textContent  = heading   != null ? heading.toFixed(1)+'°' : '—';
+  document.getElementById('accel-val').textContent = gpsAccel.toFixed(2);
+  document.getElementById('speed-max').textContent = maxSpeed.toFixed(1);
+
+  // Log entry
+  if (running) {
+    const entry = {
+      time: new Date(now).toISOString(),
+      speed_kmh: speedKmh.toFixed(2),
+      gps_accel_ms2: gpsAccel.toFixed(3),
+      sensor_accel_mag: sensorAccelMag.toFixed(3),
+      ax: ax.toFixed(3), ay: ay.toFixed(3), az: az.toFixed(3),
+      lat: latitude.toFixed(7),
+      lon: longitude.toFixed(7),
+      alt: altitude != null ? altitude.toFixed(2) : '',
+      heading: heading != null ? heading.toFixed(1) : '',
+      accuracy: accuracy ? accuracy.toFixed(1) : ''
+    };
+    log.push(entry);
+    addLogRow(entry);
+    document.getElementById('points-val').textContent = log.length;
+  }
+}
+
+function onGPSError(err) {
+  setStatus('error', 'GPS ERR');
+  const msgs = {1:'Permission denied',2:'Position unavailable',3:'Timeout'};
+  showNotice('❌ GPS Error: ' + (msgs[err.code] || err.message));
+}
+
+// ─── Motion ─────────────────────────────────────────────────────────────────
+function onMotion(e) {
+  const a = e.accelerationIncludingGravity || e.acceleration;
+  if (!a) return;
+  ax = a.x || 0; ay = a.y || 0; az = a.z || 0;
+
+  // Update bars (max ±20 m/s²)
+  updateBar('bar-x', 'ax-val', ax);
+  updateBar('bar-y', 'ay-val', ay);
+  updateBar('bar-z', 'az-val', az);
+}
+
+function updateBar(id, valId, val) {
+  const max = 20;
+  const pct = Math.min(Math.abs(val) / max * 50, 50);
+  const bar = document.getElementById(id);
+  document.getElementById(valId).textContent = val.toFixed(2);
+  if (val >= 0) { bar.style.left='50%'; bar.style.width=pct+'%'; }
+  else           { bar.style.left=(50-pct)+'%'; bar.style.width=pct+'%'; }
+}
+
+// ─── Gauge ───────────────────────────────────────────────────────────────────
+function updateSpeed(kmh) {
+  const el = document.getElementById('speed-val');
+  el.textContent = Math.round(kmh);
+
+  // Color based on speed
+  if      (kmh > 120) el.style.color = 'var(--accent2)';
+  else if (kmh > 60)  el.style.color = 'var(--accent)';
+  else                el.style.color = 'var(--accent3)';
+
+  // Arc gauge (0–160 km/h)
+  const fill = document.getElementById('gauge-fill');
+  const total = 283; // arc length
+  const ratio = Math.min(kmh / 160, 1);
+  fill.style.strokeDashoffset = total - ratio * total;
+  fill.style.stroke = kmh > 120 ? 'var(--accent2)' : kmh > 60 ? 'var(--accent)' : 'var(--accent3)';
+}
+
+// ─── Log table ───────────────────────────────────────────────────────────────
+function addLogRow(e) {
+  const body = document.getElementById('log-body');
+  // Clear placeholder
+  if (log.length === 1) body.innerHTML = '';
+
+  const row = document.createElement('div');
+  row.className = 'log-row';
+  const t = e.time.split('T')[1].split('.')[0];
+  row.innerHTML = `
+    <span>${t}</span>
+    <span>${e.speed_kmh} km/h</span>
+    <span>${e.gps_accel_ms2} m/s²</span>
+    <span>${e.lat}, ${e.lon}</span>
+  `;
+  body.prepend(row);
+  document.getElementById('log-count').textContent = log.length + ' entries';
+}
+
+function clearLog() {
+  document.getElementById('log-body').innerHTML =
+    '<div style="font-size:.65rem;color:var(--dim);text-align:center;padding:20px 0;">Acquiring GPS signal…</div>';
+  document.getElementById('log-count').textContent = '0 entries';
+  document.getElementById('points-val').textContent = '0';
+}
+
+// ─── Export ──────────────────────────────────────────────────────────────────
+function exportCSV() {
+  if (!log.length) { showToast('No data to export'); return; }
+  const headers = Object.keys(log[0]).join(',');
+  const rows = log.map(r => Object.values(r).join(','));
+  const csv = [headers, ...rows].join('\n');
+  const blob = new Blob([csv], {type:'text/csv'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'velolog_' + new Date().toISOString().slice(0,19).replace(/:/g,'-') + '.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('CSV exported — ' + log.length + ' rows');
+}
+
+// ─── UI helpers ──────────────────────────────────────────────────────────────
+function setStatus(cls, text) {
+  const dot = document.getElementById('status-dot');
+  dot.className = 'status-dot ' + cls;
+  document.getElementById('status-text').textContent = text;
+}
+
+function btnState(isRunning) {
+  document.getElementById('btn-start').disabled  =  isRunning;
+  document.getElementById('btn-stop').disabled   = !isRunning;
+  document.getElementById('btn-export').disabled = isRunning || log.length === 0;
+  if (!isRunning && log.length > 0)
+    document.getElementById('btn-export').disabled = false;
+}
+
+function showNotice(msg) {
+  const n = document.getElementById('notice');
+  n.textContent = msg; n.classList.add('show');
+  setTimeout(() => n.classList.remove('show'), 6000);
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+</script>
+</body>
+</html>
