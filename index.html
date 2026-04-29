@@ -1,1163 +1,903 @@
-  <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<meta name="theme-color" content="#080d14">
+<meta name="theme-color" content="#060a10">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <title>VeloLog</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&family=Bebas+Neue&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@400;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
 :root {
-  --bg:#080d14; --panel:#0d1520; --panel2:#111c2a;
-  --border:#1c2e42; --border2:#243648;
-  --accent:#00c8ff; --accent2:#ff3d5a; --accent3:#00ff88;
-  --warn:#ffaa00;
-  --text:#b8d4ec; --dim:#3a5570; --dimmer:#1e3248;
-  --glow:0 0 18px rgba(0,200,255,.3);
-  --glow2:0 0 18px rgba(255,61,90,.3);
-  --glow3:0 0 18px rgba(0,255,136,.3);
-  --r:14px;
+  --bg:#060a10; --panel:#0b1219; --panel2:#0f1a24; --panel3:#142030;
+  --border:#1a2d3f; --border2:#223548;
+  --cyan:#00d4ff; --red:#ff3a56; --green:#00e87a; --amber:#ffb300;
+  --text:#c8dff2; --dim:#4a6880; --dimmer:#1a2c3a;
+  --r:16px;
 }
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:'Rajdhani',sans-serif}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);
+  font-family:'Exo 2',sans-serif;font-weight:600}
+#app{display:flex;flex-direction:column;height:100dvh;max-width:480px;margin:0 auto}
 
-/* scanlines */
-body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:9000;
-  background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,.04) 3px,rgba(0,0,0,.04) 4px)}
-
-/* ── APP SHELL ── */
-#app{display:flex;flex-direction:column;height:100dvh;max-width:480px;margin:0 auto;position:relative}
-
-/* ── HEADER ── */
+/* HEADER */
 header{display:flex;align-items:center;justify-content:space-between;
-  padding:10px 14px;background:var(--panel);border-bottom:1px solid var(--border);
-  position:relative;z-index:100;flex-shrink:0}
-.logo{font-family:'Bebas Neue',sans-serif;font-size:1.5rem;letter-spacing:.12em;
-  color:var(--accent);text-shadow:var(--glow)}
-.hdr-right{display:flex;align-items:center;gap:10px}
-.signal-wrap{display:flex;align-items:flex-end;gap:2px;height:16px}
-.signal-bar{width:3px;background:var(--dim);border-radius:1px;transition:background .3s}
-.signal-bar:nth-child(1){height:4px}.signal-bar:nth-child(2){height:7px}
-.signal-bar:nth-child(3){height:10px}.signal-bar:nth-child(4){height:13px}
-.signal-bar.on{background:var(--accent3);box-shadow:0 0 4px var(--accent3)}
-.rec-dot{width:8px;height:8px;border-radius:50%;background:var(--dim);transition:all .3s}
-.rec-dot.active{background:#ff3d5a;box-shadow:0 0 8px #ff3d5a;animation:pulse 1.2s infinite}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
-.icon-btn{background:none;border:1px solid var(--border2);border-radius:8px;
-  color:var(--text);font-size:1.1rem;width:34px;height:34px;cursor:pointer;
-  display:flex;align-items:center;justify-content:center;transition:all .2s}
-.icon-btn:active{background:var(--panel2);border-color:var(--accent)}
+  padding:12px 16px;background:var(--panel);border-bottom:1px solid var(--border);
+  flex-shrink:0;z-index:100}
+.logo{font-size:1.35rem;font-weight:900;letter-spacing:.08em;color:var(--cyan);
+  text-shadow:0 0 20px rgba(0,212,255,.5)}
+.logo span{color:var(--text);font-weight:600}
+.hdr-right{display:flex;align-items:center;gap:12px}
+.sig{display:flex;align-items:flex-end;gap:2.5px;height:18px}
+.sb{width:4px;background:var(--dimmer);border-radius:2px;transition:background .4s}
+.sb:nth-child(1){height:5px}.sb:nth-child(2){height:8px}
+.sb:nth-child(3){height:12px}.sb:nth-child(4){height:16px}
+.sb.on{background:var(--green)}
+.rec{display:flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;
+  border:1px solid var(--border2);background:var(--panel2);
+  font-size:.7rem;font-weight:700;letter-spacing:.08em;color:var(--dim)}
+.rec-led{width:7px;height:7px;border-radius:50%;background:var(--dim);flex-shrink:0}
+.rec.live{border-color:rgba(255,58,86,.4);background:rgba(255,58,86,.08);color:var(--red)}
+.rec.live .rec-led{background:var(--red);box-shadow:0 0 8px var(--red);animation:blink 1s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
 
-/* ── TABS ── */
+/* TABS */
 .tabs{display:flex;background:var(--panel);border-bottom:1px solid var(--border);flex-shrink:0}
-.tab{flex:1;padding:9px 4px;text-align:center;font-size:.72rem;letter-spacing:.1em;
-  text-transform:uppercase;color:var(--dim);cursor:pointer;transition:all .2s;
-  border-bottom:2px solid transparent;font-weight:600}
-.tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.tab{flex:1;padding:11px 4px;text-align:center;font-size:.78rem;letter-spacing:.06em;
+  text-transform:uppercase;color:var(--dim);cursor:pointer;transition:all .25s;
+  border-bottom:2px solid transparent;font-weight:700}
+.tab.active{color:var(--cyan);border-bottom-color:var(--cyan)}
 
-/* ── PAGES ── */
+/* PAGES */
 .page{display:none;flex:1;overflow-y:auto;flex-direction:column;
   scrollbar-width:thin;scrollbar-color:var(--border) transparent}
 .page.active{display:flex}
 
-/* ═══════════════════════════════════
-   DASHBOARD PAGE
-═══════════════════════════════════ */
+/* DASHBOARD */
 #page-dash{padding:12px;gap:10px}
 
-/* Trip bar */
-.trip-bar{display:flex;align-items:center;justify-content:space-between;
-  background:var(--panel);border:1px solid var(--border);border-radius:var(--r);padding:10px 14px}
-.trip-timer{font-family:'Share Tech Mono',monospace;font-size:1.3rem;color:var(--accent);
-  text-shadow:var(--glow)}
-.trip-label{font-size:.6rem;letter-spacing:.15em;color:var(--dim);text-transform:uppercase}
-.gnss-info{display:flex;gap:14px;align-items:center}
-.gnss-item{display:flex;flex-direction:column;align-items:flex-end;gap:1px}
-.gnss-val{font-family:'Share Tech Mono',monospace;font-size:.85rem;color:var(--accent3)}
-.gnss-lbl{font-size:.55rem;color:var(--dim);letter-spacing:.1em;text-transform:uppercase}
+.status-row{display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:stretch}
+.status-cell{background:var(--panel);border:1px solid var(--border);border-radius:12px;
+  padding:10px 12px;display:flex;flex-direction:column;gap:2px}
+.status-cell.center{align-items:center;justify-content:center;background:var(--panel2)}
+.sc-label{font-size:.6rem;letter-spacing:.14em;color:var(--dim);text-transform:uppercase;font-weight:700}
+.sc-val{font-family:'JetBrains Mono',monospace;font-size:1.1rem;font-weight:700;color:var(--cyan)}
+.sc-val.green{color:var(--green)}.sc-val.amber{color:var(--amber)}
+.trip-timer-big{font-family:'JetBrains Mono',monospace;font-size:1.45rem;font-weight:700;color:var(--cyan)}
 
-/* ── GAUGE CONTAINER ── */
-.gauge-container{background:var(--panel);border:1px solid var(--border);
-  border-radius:var(--r);display:flex;flex-direction:column;align-items:center;
-  padding:16px 12px 10px;position:relative;overflow:hidden}
-.gauge-container::before{content:'';position:absolute;top:-60px;left:50%;
-  transform:translateX(-50%);width:300px;height:300px;border-radius:50%;
-  background:radial-gradient(circle,rgba(0,200,255,.05) 0%,transparent 65%);pointer-events:none}
-
-/* ── ANALOG GAUGE ── */
-#analog-gauge{width:100%;display:flex;flex-direction:column;align-items:center}
-.analog-svg-wrap{width:min(260px,85vw);height:auto}
-#ag-svg{width:100%;overflow:visible}
-/* tick marks drawn by JS */
-.ag-center-val{text-align:center;margin-top:-8px}
-.ag-speed-num{font-family:'Bebas Neue',sans-serif;font-size:3.8rem;line-height:1;
-  color:var(--accent);text-shadow:var(--glow);transition:color .3s}
-.ag-speed-unit{font-size:.65rem;letter-spacing:.2em;color:var(--dim);text-transform:uppercase}
-.ag-speed-max{font-size:.65rem;color:var(--dim);margin-top:2px}
-.ag-speed-max span{color:var(--accent)}
-
-/* ── DIGITAL GAUGE ── */
-#digital-gauge{width:100%;display:none;flex-direction:column;align-items:center;gap:6px}
-.dg-display{background:#060b11;border:1px solid var(--border2);border-radius:10px;
-  width:100%;padding:14px;display:flex;flex-direction:column;align-items:center;
+/* GAUGE WRAPPER */
+.gauge-wrap{background:var(--panel);border:1px solid var(--border);border-radius:var(--r);
+  display:flex;flex-direction:column;align-items:center;padding:14px 12px 10px;
   position:relative;overflow:hidden}
-.dg-display::after{content:'';position:absolute;inset:0;
-  background:repeating-linear-gradient(0deg,transparent,transparent 4px,rgba(0,200,255,.015) 4px,rgba(0,200,255,.015) 5px);
-  pointer-events:none}
-.dg-speed{font-family:'Share Tech Mono',monospace;font-size:5.5rem;line-height:1;
-  color:var(--accent3);text-shadow:0 0 30px rgba(0,255,136,.4);transition:color .3s;
-  letter-spacing:-.02em}
-.dg-unit{font-size:.7rem;letter-spacing:.25em;color:var(--dim);text-transform:uppercase;margin-top:2px}
-.dg-bar-wrap{width:100%;height:6px;background:var(--dimmer);border-radius:3px;overflow:hidden}
-.dg-bar{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--accent3),var(--accent));
-  transition:width .3s cubic-bezier(.4,0,.2,1),background .3s;width:0%}
-.dg-max{font-size:.65rem;color:var(--dim);margin-top:2px}
-.dg-max span{color:var(--accent3)}
+.gauge-wrap::before{content:'';position:absolute;top:-80px;left:50%;
+  transform:translateX(-50%);width:340px;height:280px;border-radius:50%;
+  background:radial-gradient(ellipse,rgba(0,212,255,.06) 0%,transparent 65%);pointer-events:none}
 
-/* ── STATS ROW ── */
-.stats-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
-.stat-card{background:var(--panel);border:1px solid var(--border);border-radius:var(--r);
-  padding:12px 8px;display:flex;flex-direction:column;align-items:center;gap:3px}
-.stat-icon{font-size:1.1rem}
-.stat-val{font-family:'Share Tech Mono',monospace;font-size:1rem;font-weight:700;color:var(--accent)}
-.stat-val.green{color:var(--accent3);text-shadow:var(--glow3)}
-.stat-val.red{color:var(--accent2);text-shadow:var(--glow2)}
-.stat-lbl{font-size:.53rem;letter-spacing:.12em;color:var(--dim);text-transform:uppercase;text-align:center}
+/* ANALOG */
+#analog-gauge{width:100%;display:flex;flex-direction:column;align-items:center}
+.ag-svg-wrap{width:min(280px,90vw)}
+#ag-svg{width:100%;overflow:visible;display:block}
+.ag-readout{text-align:center;margin-top:4px;display:flex;flex-direction:column;align-items:center}
+.ag-num{font-family:'JetBrains Mono',monospace;font-size:4rem;line-height:1;font-weight:700;
+  color:var(--cyan);transition:color .3s;text-shadow:0 0 24px rgba(0,212,255,.4)}
+.ag-unit{font-size:.75rem;letter-spacing:.18em;color:var(--dim);text-transform:uppercase;font-weight:700;margin-top:2px}
+.ag-peak{font-size:.72rem;color:var(--dim);margin-top:5px;font-weight:600}
+.ag-peak b{color:var(--amber)}
 
-/* ── SECONDARY STATS ── */
-.secondary-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.sec-card{background:var(--panel);border:1px solid var(--border);border-radius:10px;
-  padding:11px 12px;display:flex;flex-direction:column;gap:2px}
-.sec-lbl{font-size:.55rem;letter-spacing:.15em;color:var(--dim);text-transform:uppercase}
-.sec-val{font-family:'Share Tech Mono',monospace;font-size:.9rem;color:var(--text)}
+/* DIGITAL */
+#digital-gauge{width:100%;display:none;flex-direction:column;align-items:center;gap:8px}
+.dg-screen{background:#040709;border:1px solid var(--border2);border-radius:12px;
+  width:100%;padding:18px 16px;display:flex;flex-direction:column;align-items:center;gap:6px;
+  position:relative;overflow:hidden}
+.dg-screen::before{content:'';position:absolute;inset:0;pointer-events:none;
+  background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,212,255,.018) 3px,rgba(0,212,255,.018) 4px)}
+.dg-num{font-family:'JetBrains Mono',monospace;font-size:6rem;line-height:1;font-weight:700;
+  letter-spacing:-.03em;color:var(--green);
+  text-shadow:0 0 40px rgba(0,232,122,.35);transition:color .25s}
+.dg-unit{font-size:.8rem;letter-spacing:.2em;color:var(--dim);text-transform:uppercase;font-weight:700}
+.dg-track{width:100%;height:8px;background:var(--dimmer);border-radius:4px;overflow:hidden}
+.dg-fill{height:100%;border-radius:4px;width:0%;transition:width .25s cubic-bezier(.4,0,.2,1),background .3s}
+.dg-peak{font-size:.72rem;color:var(--dim);font-weight:600}
+.dg-peak b{color:var(--amber)}
 
-/* ── CONTROLS ── */
-.ctrl-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.btn{padding:13px;border-radius:10px;border:1px solid var(--border);
-  font-family:'Rajdhani',sans-serif;font-size:.8rem;letter-spacing:.1em;
-  cursor:pointer;transition:all .2s;text-transform:uppercase;font-weight:700}
-.btn-start{background:rgba(0,255,136,.08);color:var(--accent3);border-color:rgba(0,255,136,.3)}
-.btn-start:active{background:rgba(0,255,136,.18);box-shadow:var(--glow3)}
-.btn-stop{background:rgba(255,61,90,.08);color:var(--accent2);border-color:rgba(255,61,90,.3)}
-.btn-stop:active{background:rgba(255,61,90,.18);box-shadow:var(--glow2)}
-.btn:disabled{opacity:.3;pointer-events:none}
+/* STATS */
+.stats-3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.stat-box{background:var(--panel);border:1px solid var(--border);border-radius:12px;
+  padding:12px 8px;display:flex;flex-direction:column;align-items:center;gap:4px}
+.stat-icon{font-size:1.3rem;line-height:1}
+.stat-num{font-family:'JetBrains Mono',monospace;font-size:1.05rem;font-weight:700;color:var(--cyan)}
+.stat-num.g{color:var(--green)}.stat-num.r{color:var(--red)}.stat-num.a{color:var(--amber)}
+.stat-lbl{font-size:.58rem;letter-spacing:.1em;color:var(--dim);text-transform:uppercase;font-weight:700;text-align:center}
+.stats-4{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.sec-box{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:3px}
+.sec-lbl{font-size:.6rem;letter-spacing:.14em;color:var(--dim);text-transform:uppercase;font-weight:700}
+.sec-val{font-family:'JetBrains Mono',monospace;font-size:.95rem;font-weight:600;color:var(--text)}
 
-/* ═══════════════════════════════════
-   TRIPS PAGE
-═══════════════════════════════════ */
+/* CONTROLS */
+.ctrl-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.btn{padding:15px;border-radius:12px;border:none;font-family:'Exo 2',sans-serif;
+  font-size:.9rem;font-weight:800;letter-spacing:.06em;cursor:pointer;transition:all .2s;text-transform:uppercase}
+.btn-start{background:linear-gradient(135deg,rgba(0,232,122,.15),rgba(0,232,122,.05));
+  color:var(--green);border:1px solid rgba(0,232,122,.35)}
+.btn-start:active{background:rgba(0,232,122,.25);transform:scale(.97)}
+.btn-stop{background:linear-gradient(135deg,rgba(255,58,86,.15),rgba(255,58,86,.05));
+  color:var(--red);border:1px solid rgba(255,58,86,.35)}
+.btn-stop:active{background:rgba(255,58,86,.25);transform:scale(.97)}
+.btn:disabled{opacity:.25;pointer-events:none}
+
+/* TRIPS PAGE */
 #page-trips{padding:12px;gap:10px}
-.section-hdr{display:flex;align-items:center;justify-content:space-between;
-  padding:0 2px;margin-bottom:2px}
-.section-title{font-size:.65rem;letter-spacing:.2em;color:var(--dim);text-transform:uppercase}
+.cmp-bar{background:var(--panel2);border:1px solid rgba(255,179,0,.3);border-radius:12px;
+  padding:11px 14px;display:none;align-items:center;justify-content:space-between;gap:8px}
+.cmp-bar.show{display:flex}
+.cmp-txt{font-size:.78rem;color:var(--amber);font-weight:700}
+.cmp-go{padding:8px 16px;border-radius:8px;background:rgba(255,179,0,.12);
+  border:1px solid rgba(255,179,0,.35);color:var(--amber);font-size:.78rem;font-weight:800;
+  cursor:pointer;font-family:'Exo 2',sans-serif;text-transform:uppercase;transition:all .2s}
+.cmp-go:disabled{opacity:.35;pointer-events:none}
+.cmp-go:active{background:rgba(255,179,0,.22)}
 .trip-card{background:var(--panel);border:1px solid var(--border);border-radius:var(--r);
-  padding:14px;display:flex;flex-direction:column;gap:8px;cursor:pointer;
-  transition:border-color .2s,background .2s}
-.trip-card:active{background:var(--panel2);border-color:var(--border2)}
-.trip-card-hdr{display:flex;align-items:flex-start;justify-content:space-between}
-.trip-name{font-size:1rem;font-weight:700;color:var(--text)}
-.trip-date{font-size:.65rem;color:var(--dim);font-family:'Share Tech Mono',monospace}
-.trip-stats-mini{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
-.tsm-item{display:flex;flex-direction:column;gap:1px}
-.tsm-val{font-family:'Share Tech Mono',monospace;font-size:.82rem;color:var(--accent)}
-.tsm-lbl{font-size:.5rem;letter-spacing:.1em;color:var(--dim);text-transform:uppercase}
-.trip-actions{display:flex;gap:6px;margin-top:2px}
-.ta-btn{flex:1;padding:7px;border-radius:8px;border:1px solid var(--border2);
-  background:transparent;color:var(--dim);font-size:.65rem;letter-spacing:.08em;
-  cursor:pointer;font-family:'Rajdhani',sans-serif;font-weight:600;text-transform:uppercase;transition:all .2s}
-.ta-btn.view{color:var(--accent);border-color:rgba(0,200,255,.3)}
-.ta-btn.compare{color:var(--warn);border-color:rgba(255,170,0,.3)}
-.ta-btn.del{color:var(--accent2);border-color:rgba(255,61,90,.3)}
-.ta-btn:active{opacity:.6}
-.empty-state{text-align:center;padding:40px 20px;color:var(--dim);font-size:.85rem;line-height:1.8}
+  padding:14px;display:flex;flex-direction:column;gap:10px;transition:border-color .2s}
+.trip-card.sel{border-color:var(--amber);background:rgba(255,179,0,.04)}
+.tc-head{display:flex;justify-content:space-between;align-items:flex-start}
+.tc-name{font-size:1.05rem;font-weight:800;color:var(--text)}
+.tc-date{font-family:'JetBrains Mono',monospace;font-size:.65rem;color:var(--dim)}
+.tc-sel-badge{font-size:.62rem;font-weight:800;color:var(--amber);
+  background:rgba(255,179,0,.12);border:1px solid rgba(255,179,0,.3);
+  border-radius:6px;padding:2px 7px;letter-spacing:.06em}
+.tc-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.tcs-item{display:flex;flex-direction:column;gap:1px}
+.tcs-val{font-family:'JetBrains Mono',monospace;font-size:.85rem;font-weight:700;color:var(--cyan)}
+.tcs-lbl{font-size:.52rem;letter-spacing:.1em;color:var(--dim);text-transform:uppercase;font-weight:700}
+.tc-btns{display:flex;gap:6px}
+.tcb{flex:1;padding:8px 4px;border-radius:9px;border:1px solid var(--border2);
+  background:transparent;font-family:'Exo 2',sans-serif;font-size:.7rem;font-weight:800;
+  letter-spacing:.05em;text-transform:uppercase;cursor:pointer;transition:all .2s}
+.tcb.view{color:var(--cyan);border-color:rgba(0,212,255,.3)}
+.tcb.view:active{background:rgba(0,212,255,.1)}
+.tcb.cmp{color:var(--amber);border-color:rgba(255,179,0,.3)}
+.tcb.cmp:active{background:rgba(255,179,0,.1)}
+.tcb.del{color:var(--red);border-color:rgba(255,58,86,.3)}
+.tcb.del:active{background:rgba(255,58,86,.1)}
+.empty{text-align:center;padding:50px 20px;color:var(--dim);font-size:.9rem;line-height:1.9;font-weight:600}
 
-/* Compare mode */
-.compare-bar{background:var(--panel2);border:1px solid var(--border2);border-radius:10px;
-  padding:10px 14px;display:flex;align-items:center;justify-content:space-between;display:none}
-.compare-bar.show{display:flex}
-.compare-info{font-size:.72rem;color:var(--warn)}
-.compare-go{padding:7px 14px;border-radius:8px;border:1px solid rgba(255,170,0,.4);
-  background:rgba(255,170,0,.1);color:var(--warn);font-size:.7rem;cursor:pointer;
-  font-family:'Rajdhani',sans-serif;font-weight:700;text-transform:uppercase}
-
-/* ═══════════════════════════════════
-   SETTINGS PAGE
-═══════════════════════════════════ */
+/* SETTINGS PAGE */
 #page-settings{padding:12px;gap:10px}
-.setting-group{background:var(--panel);border:1px solid var(--border);border-radius:var(--r);overflow:hidden}
-.setting-group-title{padding:10px 14px;font-size:.6rem;letter-spacing:.2em;
-  color:var(--dim);text-transform:uppercase;border-bottom:1px solid var(--border);
-  background:var(--panel2)}
-.setting-row{display:flex;align-items:center;justify-content:space-between;
-  padding:13px 14px;border-bottom:1px solid var(--border)}
-.setting-row:last-child{border-bottom:none}
-.setting-name{font-size:.9rem;font-weight:600;color:var(--text)}
-.setting-desc{font-size:.65rem;color:var(--dim);margin-top:1px}
-
-/* Toggle */
-.toggle{position:relative;width:46px;height:26px;flex-shrink:0}
-.toggle input{opacity:0;width:0;height:0}
-.toggle-slider{position:absolute;inset:0;background:var(--dimmer);border-radius:13px;
+.sg{background:var(--panel);border:1px solid var(--border);border-radius:var(--r);overflow:hidden}
+.sg-title{padding:11px 15px;font-size:.65rem;letter-spacing:.18em;color:var(--dim);
+  text-transform:uppercase;font-weight:800;border-bottom:1px solid var(--border);background:var(--panel2)}
+.sr{display:flex;align-items:center;justify-content:space-between;gap:10px;
+  padding:14px 15px;border-bottom:1px solid var(--border)}
+.sr:last-child{border-bottom:none}
+.sr-name{font-size:.95rem;font-weight:700;color:var(--text)}
+.sr-desc{font-size:.68rem;color:var(--dim);margin-top:2px;font-weight:600}
+.tog{position:relative;width:50px;height:28px;flex-shrink:0}
+.tog input{opacity:0;width:0;height:0}
+.tog-sl{position:absolute;inset:0;background:var(--dimmer);border-radius:14px;
   cursor:pointer;transition:.3s;border:1px solid var(--border2)}
-.toggle-slider::before{content:'';position:absolute;height:18px;width:18px;
+.tog-sl::before{content:'';position:absolute;height:20px;width:20px;
   left:3px;top:3px;background:var(--dim);border-radius:50%;transition:.3s}
-.toggle input:checked + .toggle-slider{background:rgba(0,200,255,.2);border-color:var(--accent)}
-.toggle input:checked + .toggle-slider::before{transform:translateX(20px);background:var(--accent)}
-
-/* Gauge mode selector */
-.gauge-selector{display:flex;gap:0;border:1px solid var(--border2);border-radius:8px;overflow:hidden}
-.gauge-opt{padding:7px 16px;font-size:.75rem;font-weight:700;letter-spacing:.05em;
-  cursor:pointer;transition:all .2s;font-family:'Rajdhani',sans-serif;text-transform:uppercase;
+.tog input:checked ~ .tog-sl{background:rgba(0,212,255,.18);border-color:var(--cyan)}
+.tog input:checked ~ .tog-sl::before{transform:translateX(22px);background:var(--cyan)}
+.pill-sel{display:flex;border:1px solid var(--border2);border-radius:9px;overflow:hidden}
+.pill-opt{padding:8px 16px;font-size:.78rem;font-weight:800;letter-spacing:.04em;
+  cursor:pointer;transition:all .2s;font-family:'Exo 2',sans-serif;text-transform:uppercase;
   background:transparent;border:none;color:var(--dim)}
-.gauge-opt.active{background:rgba(0,200,255,.15);color:var(--accent)}
+.pill-opt.active{background:rgba(0,212,255,.15);color:var(--cyan)}
+.pill-opt+.pill-opt{border-left:1px solid var(--border2)}
 
-/* Units selector */
-.units-selector{display:flex;gap:0;border:1px solid var(--border2);border-radius:8px;overflow:hidden}
-.unit-opt{padding:7px 14px;font-size:.75rem;font-weight:700;cursor:pointer;
-  transition:all .2s;font-family:'Rajdhani',sans-serif;text-transform:uppercase;
-  background:transparent;border:none;color:var(--dim)}
-.unit-opt.active{background:rgba(0,200,255,.15);color:var(--accent)}
-
-/* ═══════════════════════════════════
-   MODALS
-═══════════════════════════════════ */
-.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:500;
-  display:none;align-items:flex-end;justify-content:center;backdrop-filter:blur(4px)}
-.modal-overlay.show{display:flex}
-.modal{background:var(--panel);border:1px solid var(--border2);
-  border-radius:16px 16px 0 0;width:100%;max-width:480px;max-height:90dvh;
-  overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:14px;
-  animation:slideUp .25s cubic-bezier(.4,0,.2,1)}
-@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
-.modal-handle{width:36px;height:4px;background:var(--border2);border-radius:2px;
-  margin:0 auto -4px}
-.modal-title{font-family:'Bebas Neue',sans-serif;font-size:1.4rem;letter-spacing:.1em;
-  color:var(--accent);text-align:center}
-.modal-close{position:absolute;top:14px;right:16px;background:none;border:1px solid var(--border2);
-  border-radius:8px;width:32px;height:32px;color:var(--dim);cursor:pointer;font-size:1rem}
-
-/* Trip summary */
-.summary-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.sum-card{background:var(--panel2);border:1px solid var(--border);border-radius:10px;
-  padding:12px;display:flex;flex-direction:column;gap:3px}
-.sum-val{font-family:'Share Tech Mono',monospace;font-size:1.3rem;color:var(--accent);font-weight:700}
-.sum-val.green{color:var(--accent3)}
-.sum-val.red{color:var(--accent2)}
-.sum-lbl{font-size:.58rem;letter-spacing:.12em;color:var(--dim);text-transform:uppercase}
-.sum-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.sum-btn{padding:12px;border-radius:10px;border:1px solid var(--border);
-  font-family:'Rajdhani',sans-serif;font-size:.8rem;letter-spacing:.1em;
-  cursor:pointer;text-transform:uppercase;font-weight:700;transition:all .2s}
-.sum-btn.save{background:rgba(0,255,136,.08);color:var(--accent3);border-color:rgba(0,255,136,.3)}
-.sum-btn.discard{background:rgba(255,61,90,.06);color:var(--accent2);border-color:rgba(255,61,90,.25)}
-.sum-btn:active{opacity:.7}
-.trip-name-input{width:100%;background:var(--panel2);border:1px solid var(--border2);
-  border-radius:8px;padding:10px 12px;color:var(--text);font-family:'Rajdhani',sans-serif;
-  font-size:.95rem;outline:none;transition:border-color .2s}
-.trip-name-input:focus{border-color:var(--accent)}
-
-/* Compare modal */
-.compare-table{width:100%;border-collapse:collapse}
-.compare-table th{font-size:.58rem;letter-spacing:.12em;color:var(--dim);
-  text-transform:uppercase;padding:6px 8px;text-align:left;border-bottom:1px solid var(--border)}
-.compare-table td{padding:8px;font-size:.82rem;font-family:'Share Tech Mono',monospace;
-  border-bottom:1px solid var(--dimmer)}
-.compare-table tr:last-child td{border-bottom:none}
-.compare-table td.name{font-family:'Rajdhani',sans-serif;font-size:.85rem;color:var(--text);font-weight:600}
-.compare-table td.better{color:var(--accent3)}
-.compare-table td.worse{color:var(--accent2)}
-
-/* Toast */
-.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);
-  background:var(--panel2);border:1px solid var(--border2);border-radius:10px;
-  padding:9px 18px;font-size:.78rem;color:var(--accent);z-index:9999;
-  transition:transform .3s cubic-bezier(.4,0,.2,1);white-space:nowrap;
-  font-family:'Rajdhani',sans-serif;font-weight:600;letter-spacing:.05em}
+/* MODALS */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.82);z-index:500;
+  display:none;align-items:flex-end;justify-content:center;backdrop-filter:blur(6px)}
+.overlay.show{display:flex}
+.modal{background:var(--panel);border:1px solid var(--border2);border-radius:20px 20px 0 0;
+  width:100%;max-width:480px;max-height:92dvh;overflow-y:auto;padding:20px;
+  display:flex;flex-direction:column;gap:14px;animation:up .28s cubic-bezier(.32,.72,0,1)}
+@keyframes up{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.m-handle{width:40px;height:4px;background:var(--border2);border-radius:2px;margin:0 auto -4px}
+.m-title{font-size:1.25rem;font-weight:900;letter-spacing:.05em;color:var(--cyan);text-align:center}
+.m-close{position:absolute;top:16px;right:16px;background:var(--panel2);
+  border:1px solid var(--border2);border-radius:9px;width:34px;height:34px;
+  color:var(--dim);cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center}
+.sum-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.sum-card{background:var(--panel2);border:1px solid var(--border);border-radius:12px;padding:13px;display:flex;flex-direction:column;gap:3px}
+.sv{font-family:'JetBrains Mono',monospace;font-size:1.25rem;font-weight:700;color:var(--cyan)}
+.sv.g{color:var(--green)}.sv.r{color:var(--red)}
+.sl{font-size:.6rem;letter-spacing:.12em;color:var(--dim);text-transform:uppercase;font-weight:700}
+.m-input{width:100%;background:var(--panel2);border:1px solid var(--border2);
+  border-radius:10px;padding:12px 14px;color:var(--text);
+  font-family:'Exo 2',sans-serif;font-size:1rem;font-weight:600;outline:none;transition:border-color .2s}
+.m-input:focus{border-color:var(--cyan)}
+.m-btns{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.mb{padding:14px;border-radius:12px;border:none;font-family:'Exo 2',sans-serif;
+  font-size:.9rem;font-weight:800;letter-spacing:.05em;text-transform:uppercase;cursor:pointer;transition:all .2s}
+.mb.save{background:rgba(0,232,122,.12);color:var(--green);border:1px solid rgba(0,232,122,.3)}
+.mb.save:active{background:rgba(0,232,122,.22)}
+.mb.disc{background:rgba(255,58,86,.08);color:var(--red);border:1px solid rgba(255,58,86,.25)}
+.mb.disc:active{background:rgba(255,58,86,.18)}
+.mb.full{grid-column:1/-1}
+.cmp-tbl{width:100%;border-collapse:collapse}
+.cmp-tbl th{font-size:.6rem;letter-spacing:.12em;color:var(--dim);text-transform:uppercase;
+  font-weight:800;padding:8px;text-align:left;border-bottom:1px solid var(--border)}
+.cmp-tbl td{padding:10px 8px;font-family:'JetBrains Mono',monospace;font-size:.85rem;border-bottom:1px solid var(--dimmer)}
+.cmp-tbl tr:last-child td{border-bottom:none}
+.cmp-tbl td.nm{font-family:'Exo 2',sans-serif;font-size:.9rem;color:var(--text);font-weight:700}
+.cmp-tbl td.win{color:var(--green)}.cmp-tbl td.lose{color:var(--red)}
+.toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(90px);
+  background:var(--panel2);border:1px solid var(--border2);border-radius:12px;
+  padding:10px 20px;font-size:.82rem;font-weight:700;color:var(--cyan);
+  z-index:9999;transition:transform .3s cubic-bezier(.32,.72,0,1);white-space:nowrap}
 .toast.show{transform:translateX(-50%) translateY(0)}
 </style>
 </head>
 <body>
 <div id="app">
 
-<!-- HEADER -->
 <header>
-  <div class="logo">VeloLog</div>
+  <div class="logo">VELO<span>LOG</span></div>
   <div class="hdr-right">
-    <div class="signal-wrap" id="signal-wrap">
-      <div class="signal-bar" id="sb1"></div>
-      <div class="signal-bar" id="sb2"></div>
-      <div class="signal-bar" id="sb3"></div>
-      <div class="signal-bar" id="sb4"></div>
+    <div class="sig">
+      <div class="sb" id="sb1"></div><div class="sb" id="sb2"></div>
+      <div class="sb" id="sb3"></div><div class="sb" id="sb4"></div>
     </div>
-    <div class="rec-dot" id="rec-dot"></div>
+    <div class="rec" id="rec-pill">
+      <div class="rec-led"></div><span id="rec-txt">IDLE</span>
+    </div>
   </div>
 </header>
 
-<!-- TABS -->
 <div class="tabs">
   <div class="tab active" data-tab="dash">Dashboard</div>
   <div class="tab" data-tab="trips">Trips</div>
   <div class="tab" data-tab="settings">Settings</div>
 </div>
 
-<!-- ══════════════ DASHBOARD ══════════════ -->
+<!-- DASHBOARD -->
 <div class="page active" id="page-dash">
-
-  <!-- Trip timer + GNSS -->
-  <div class="trip-bar">
-    <div>
-      <div class="trip-label">Trip Time</div>
-      <div class="trip-timer" id="trip-timer">00:00:00</div>
+  <div class="status-row">
+    <div class="status-cell">
+      <span class="sc-label">Trip Time</span>
+      <span class="trip-timer-big" id="trip-timer">00:00:00</span>
     </div>
-    <div class="gnss-info">
-      <div class="gnss-item">
-        <span class="gnss-val" id="gnss-sats">—</span>
-        <span class="gnss-lbl">Satellites</span>
+    <div class="status-cell center" style="min-width:54px">
+      <div class="sig" style="transform:scale(1.15)">
+        <div class="sb" id="sb1b"></div><div class="sb" id="sb2b"></div>
+        <div class="sb" id="sb3b"></div><div class="sb" id="sb4b"></div>
       </div>
-      <div class="gnss-item">
-        <span class="gnss-val" id="gnss-acc">—</span>
-        <span class="gnss-lbl">Accuracy</span>
-      </div>
+    </div>
+    <div class="status-cell" style="align-items:flex-end">
+      <span class="sc-label" style="text-align:right">Satellites</span>
+      <span class="sc-val green" id="gnss-sats">—</span>
+      <span class="sc-label" style="text-align:right;margin-top:4px">Accuracy</span>
+      <span class="sc-val amber" id="gnss-acc">—</span>
     </div>
   </div>
 
-  <!-- GAUGE -->
-  <div class="gauge-container">
+  <div class="gauge-wrap">
     <!-- ANALOG -->
     <div id="analog-gauge">
-      <div class="analog-svg-wrap">
-        <svg id="ag-svg" viewBox="0 0 260 155">
-          <!-- Track -->
-          <path id="ag-track" d="" fill="none" stroke="#1c2e42" stroke-width="14" stroke-linecap="round"/>
-          <!-- Fill -->
-          <path id="ag-fill"  d="" fill="none" stroke="#00c8ff" stroke-width="14" stroke-linecap="round"
-                style="filter:drop-shadow(0 0 8px #00c8ff);transition:all .35s cubic-bezier(.4,0,.2,1)"/>
-          <!-- Needle -->
-          <line id="ag-needle" x1="130" y1="130" x2="130" y2="45"
-                stroke="#ff3d5a" stroke-width="2.5" stroke-linecap="round"
-                style="transform-origin:130px 130px;transition:transform .35s cubic-bezier(.4,0,.2,1);
-                       filter:drop-shadow(0 0 5px #ff3d5a)"/>
-          <circle cx="130" cy="130" r="7" fill="#0d1520" stroke="#ff3d5a" stroke-width="2"/>
-          <circle cx="130" cy="130" r="3" fill="#ff3d5a"/>
-          <!-- Speed labels drawn by JS -->
-          <g id="ag-labels"></g>
-          <!-- Tick marks -->
+      <div class="ag-svg-wrap">
+        <!--
+          viewBox 0 0 280 175
+          Pivot point: cx=140 cy=150
+          Arc radius R=112
+          Arc: -225deg to +45deg (270deg sweep)
+          Needle points UP at 0 speed (angle=-225 => svgRotate=-135)
+        -->
+        <svg id="ag-svg" viewBox="0 0 280 175">
+          <path id="ag-track"  fill="none" stroke="#1a2d3f" stroke-width="16" stroke-linecap="round"/>
+          <path id="ag-zone-g" fill="none" stroke="rgba(0,232,122,.14)"  stroke-width="16" stroke-linecap="round"/>
+          <path id="ag-zone-a" fill="none" stroke="rgba(255,179,0,.14)"  stroke-width="16" stroke-linecap="round"/>
+          <path id="ag-zone-r" fill="none" stroke="rgba(255,58,86,.14)"  stroke-width="16" stroke-linecap="round"/>
+          <path id="ag-fill"   fill="none" stroke="#00d4ff" stroke-width="16" stroke-linecap="round" style="display:none"/>
           <g id="ag-ticks"></g>
+          <g id="ag-labels"></g>
+          <!-- Needle — rotated via transform attribute on the group -->
+          <g id="ag-needle-g">
+            <line x1="140" y1="150" x2="140" y2="50" stroke="#ff3a56" stroke-width="3" stroke-linecap="round"/>
+            <line x1="140" y1="150" x2="140" y2="162" stroke="#ff3a56" stroke-width="2" stroke-linecap="round" opacity=".45"/>
+            <line x1="140" y1="150" x2="140" y2="54" stroke="#ff3a56" stroke-width="9" stroke-linecap="round" opacity=".18"/>
+          </g>
+          <circle cx="140" cy="150" r="9" fill="#0b1219" stroke="#ff3a56" stroke-width="2.5"/>
+          <circle cx="140" cy="150" r="4" fill="#ff3a56"/>
         </svg>
       </div>
-      <div class="ag-center-val">
-        <div class="ag-speed-num" id="ag-speed">0</div>
-        <div class="ag-speed-unit" id="speed-unit-label">km/h</div>
-        <div class="ag-speed-max">Peak: <span id="ag-max">0</span> <span id="ag-max-unit">km/h</span></div>
+      <div class="ag-readout">
+        <div class="ag-num" id="ag-speed">0</div>
+        <div class="ag-unit" id="ag-unit-lbl">km/h</div>
+        <div class="ag-peak">Peak <b id="ag-peak">0</b> <span id="ag-peak-unit">km/h</span></div>
       </div>
     </div>
 
     <!-- DIGITAL -->
     <div id="digital-gauge">
-      <div class="dg-display" style="width:100%">
-        <div class="dg-speed" id="dg-speed">0</div>
-        <div class="dg-unit" id="dg-unit-label">km/h</div>
-        <div style="width:100%;margin-top:10px">
-          <div class="dg-bar-wrap"><div class="dg-bar" id="dg-bar"></div></div>
-        </div>
+      <div class="dg-screen">
+        <div class="dg-num" id="dg-speed">0</div>
+        <div class="dg-unit" id="dg-unit-lbl">km/h</div>
+        <div class="dg-track"><div class="dg-fill" id="dg-fill"></div></div>
       </div>
-      <div class="dg-max">Peak: <span id="dg-max">0</span> <span id="dg-max-unit">km/h</span></div>
+      <div class="dg-peak">Peak <b id="dg-peak">0</b> <span id="dg-peak-unit">km/h</span></div>
     </div>
   </div>
 
-  <!-- Main stats -->
-  <div class="stats-row">
-    <div class="stat-card">
+  <div class="stats-3">
+    <div class="stat-box">
       <div class="stat-icon">📍</div>
-      <div class="stat-val green" id="stat-dist">0.00</div>
-      <div class="stat-lbl">Dist (km)</div>
+      <div class="stat-num g" id="st-dist">0.00</div>
+      <div class="stat-lbl">Dist km</div>
     </div>
-    <div class="stat-card">
+    <div class="stat-box">
       <div class="stat-icon">⚡</div>
-      <div class="stat-val" id="stat-accel">0.00</div>
+      <div class="stat-num" id="st-accel">0.00</div>
       <div class="stat-lbl">Accel m/s²</div>
     </div>
-    <div class="stat-card">
-      <div class="stat-icon">📊</div>
-      <div class="stat-val" id="stat-avg">0.0</div>
+    <div class="stat-box">
+      <div class="stat-icon">∅</div>
+      <div class="stat-num a" id="st-avg">0.0</div>
       <div class="stat-lbl">Avg Speed</div>
     </div>
   </div>
 
-  <!-- Secondary stats -->
-  <div class="secondary-grid">
-    <div class="sec-card">
+  <div class="stats-4">
+    <div class="sec-box">
       <span class="sec-lbl">Peak Accel</span>
-      <span class="sec-val" id="sec-peak-accel">— m/s²</span>
+      <span class="sec-val" id="sec-paccel">— m/s²</span>
     </div>
-    <div class="sec-card">
+    <div class="sec-box">
       <span class="sec-lbl">Heading</span>
-      <span class="sec-val" id="sec-heading">—</span>
+      <span class="sec-val" id="sec-hdg">—</span>
     </div>
-    <div class="sec-card">
+    <div class="sec-box">
       <span class="sec-lbl">Altitude</span>
       <span class="sec-val" id="sec-alt">— m</span>
     </div>
-    <div class="sec-card">
-      <span class="sec-lbl">Coordinates</span>
-      <span class="sec-val" id="sec-coords" style="font-size:.72rem">—</span>
+    <div class="sec-box">
+      <span class="sec-lbl">Position</span>
+      <span class="sec-val" id="sec-pos" style="font-size:.78rem">—</span>
     </div>
   </div>
 
-  <!-- Controls -->
   <div class="ctrl-row">
     <button class="btn btn-start" id="btn-start" onclick="startTrip()">▶ Start Trip</button>
     <button class="btn btn-stop"  id="btn-stop"  onclick="stopTrip()" disabled>■ End Trip</button>
   </div>
-
 </div>
 
-<!-- ══════════════ TRIPS ══════════════ -->
+<!-- TRIPS -->
 <div class="page" id="page-trips">
-  <div class="compare-bar" id="compare-bar">
-    <span class="compare-info" id="compare-info">Select 2 trips to compare</span>
-    <button class="compare-go" id="compare-go-btn" onclick="openCompare()" disabled>Compare</button>
+  <div class="cmp-bar" id="cmp-bar">
+    <span class="cmp-txt" id="cmp-txt">Select 2 trips to compare</span>
+    <button class="cmp-go" id="cmp-go" onclick="openCompare()" disabled>Compare</button>
   </div>
   <div id="trips-list"></div>
 </div>
 
-<!-- ══════════════ SETTINGS ══════════════ -->
+<!-- SETTINGS -->
 <div class="page" id="page-settings">
-
-  <div class="setting-group">
-    <div class="setting-group-title">Display</div>
-    <div class="setting-row">
-      <div>
-        <div class="setting-name">Gauge Mode</div>
-        <div class="setting-desc">Analog dial or digital readout</div>
-      </div>
-      <div class="gauge-selector">
-        <button class="gauge-opt active" onclick="setGaugeMode('analog')">Analog</button>
-        <button class="gauge-opt" onclick="setGaugeMode('digital')">Digital</button>
+  <div class="sg">
+    <div class="sg-title">Display</div>
+    <div class="sr">
+      <div><div class="sr-name">Gauge Mode</div><div class="sr-desc">Analog dial or digital readout</div></div>
+      <div class="pill-sel">
+        <button class="pill-opt active" onclick="setGaugeMode('analog')">Analog</button>
+        <button class="pill-opt" onclick="setGaugeMode('digital')">Digital</button>
       </div>
     </div>
-    <div class="setting-row">
-      <div>
-        <div class="setting-name">Speed Units</div>
-        <div class="setting-desc">Kilometres or miles per hour</div>
-      </div>
-      <div class="units-selector">
-        <button class="unit-opt active" onclick="setUnits('kmh')">km/h</button>
-        <button class="unit-opt" onclick="setUnits('mph')">mph</button>
+    <div class="sr">
+      <div><div class="sr-name">Speed Units</div><div class="sr-desc">Kilometres or miles per hour</div></div>
+      <div class="pill-sel">
+        <button class="pill-opt active" onclick="setUnits('kmh')">km/h</button>
+        <button class="pill-opt" onclick="setUnits('mph')">mph</button>
       </div>
     </div>
   </div>
-
-  <div class="setting-group">
-    <div class="setting-group-title">GPS</div>
-    <div class="setting-row">
-      <div>
-        <div class="setting-name">High Accuracy</div>
-        <div class="setting-desc">Uses more battery, better precision</div>
-      </div>
-      <label class="toggle">
-        <input type="checkbox" id="tog-highaccuracy" checked>
-        <span class="toggle-slider"></span>
-      </label>
+  <div class="sg">
+    <div class="sg-title">GPS</div>
+    <div class="sr">
+      <div><div class="sr-name">High Accuracy</div><div class="sr-desc">Better precision, more battery</div></div>
+      <label class="tog"><input type="checkbox" id="tog-ha" checked><span class="tog-sl"></span></label>
     </div>
-    <div class="setting-row">
-      <div>
-        <div class="setting-name">Auto-save Trips</div>
-        <div class="setting-desc">Save automatically when trip ends</div>
-      </div>
-      <label class="toggle">
-        <input type="checkbox" id="tog-autosave">
-        <span class="toggle-slider"></span>
-      </label>
+    <div class="sr">
+      <div><div class="sr-name">Auto-save Trips</div><div class="sr-desc">Save automatically on trip end</div></div>
+      <label class="tog"><input type="checkbox" id="tog-as"><span class="tog-sl"></span></label>
     </div>
   </div>
-
-  <div class="setting-group">
-    <div class="setting-group-title">Data</div>
-    <div class="setting-row" style="cursor:pointer" onclick="exportAllTrips()">
-      <div>
-        <div class="setting-name">Export All Trips</div>
-        <div class="setting-desc">Download as CSV file</div>
-      </div>
-      <span style="color:var(--accent);font-size:1.1rem">↓</span>
+  <div class="sg">
+    <div class="sg-title">Data</div>
+    <div class="sr" style="cursor:pointer" onclick="exportAllTrips()">
+      <div><div class="sr-name">Export All Trips</div><div class="sr-desc">Download as CSV</div></div>
+      <span style="color:var(--cyan);font-size:1.2rem;font-weight:900">↓</span>
     </div>
-    <div class="setting-row" style="cursor:pointer" onclick="clearAllTrips()">
-      <div>
-        <div class="setting-name" style="color:var(--accent2)">Clear All Trips</div>
-        <div class="setting-desc">Permanently delete all saved trips</div>
-      </div>
-      <span style="color:var(--accent2);font-size:1.1rem">✕</span>
+    <div class="sr" style="cursor:pointer" onclick="clearAllTrips()">
+      <div><div class="sr-name" style="color:var(--red)">Clear All Trips</div><div class="sr-desc">Permanently delete everything</div></div>
+      <span style="color:var(--red);font-size:1.1rem;font-weight:900">✕</span>
     </div>
   </div>
-
-  <div style="text-align:center;padding:16px;font-size:.65rem;color:var(--dim);letter-spacing:.08em">
-    VELOLOG v2.0 · GPS Speed & Acceleration Logger
+  <div style="text-align:center;padding:18px;font-size:.68rem;color:var(--dim);font-weight:700;letter-spacing:.1em">
+    VELOLOG v3.0 · GPS SPEED & ACCELERATION LOGGER
   </div>
 </div>
 
 </div><!-- /app -->
 
-<!-- ══════════════ MODALS ══════════════ -->
-
-<!-- Trip Summary Modal -->
-<div class="modal-overlay" id="modal-summary">
+<!-- MODALS -->
+<div class="overlay" id="ov-summary">
   <div class="modal" style="position:relative">
-    <div class="modal-handle"></div>
-    <div class="modal-title">Trip Summary</div>
-    <input class="trip-name-input" id="trip-name-input" placeholder="Name this trip…" maxlength="40">
-    <div class="summary-grid" id="summary-grid"></div>
-    <div class="sum-actions">
-      <button class="sum-btn save" onclick="saveTrip()">💾 Save Trip</button>
-      <button class="sum-btn discard" onclick="discardTrip()">🗑 Discard</button>
+    <div class="m-handle"></div>
+    <div class="m-title">Trip Summary</div>
+    <input class="m-input" id="trip-name-inp" placeholder="Name this trip…" maxlength="42">
+    <div class="sum-grid" id="sum-grid"></div>
+    <div class="m-btns">
+      <button class="mb save" onclick="saveTrip()">💾 Save Trip</button>
+      <button class="mb disc" onclick="discardTrip()">🗑 Discard</button>
     </div>
   </div>
 </div>
 
-<!-- Trip Detail Modal -->
-<div class="modal-overlay" id="modal-detail">
+<div class="overlay" id="ov-detail">
   <div class="modal" style="position:relative">
-    <button class="modal-close" onclick="closeModal('modal-detail')">✕</button>
-    <div class="modal-handle"></div>
-    <div class="modal-title" id="detail-title">Trip Detail</div>
-    <div class="summary-grid" id="detail-grid"></div>
-    <button class="sum-btn save" style="width:100%" onclick="exportTripCSV()">⬇ Export CSV</button>
+    <button class="m-close" onclick="closeOv('ov-detail')">✕</button>
+    <div class="m-handle"></div>
+    <div class="m-title" id="det-title">Trip Detail</div>
+    <div class="sum-grid" id="det-grid"></div>
+    <button class="mb save full" onclick="exportTripCSV()">⬇ Export CSV</button>
   </div>
 </div>
 
-<!-- Compare Modal -->
-<div class="modal-overlay" id="modal-compare">
+<div class="overlay" id="ov-compare">
   <div class="modal" style="position:relative">
-    <button class="modal-close" onclick="closeModal('modal-compare')">✕</button>
-    <div class="modal-handle"></div>
-    <div class="modal-title">Compare Trips</div>
-    <div style="overflow-x:auto">
-      <table class="compare-table" id="compare-table"></table>
-    </div>
+    <button class="m-close" onclick="closeOv('ov-compare')">✕</button>
+    <div class="m-handle"></div>
+    <div class="m-title">Compare Trips</div>
+    <div style="overflow-x:auto"><table class="cmp-tbl" id="cmp-tbl"></table></div>
   </div>
 </div>
 
 <div class="toast" id="toast"></div>
 
 <script>
-// ═══════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════
 //  STATE
-// ═══════════════════════════════════════════════════════════════
-let settings = {
-  gaugeMode: 'analog',
-  units: 'kmh',
-  highAccuracy: true,
-  autosave: false
-};
+// ═══════════════════════════════════════════════
+let S = { gaugeMode:'analog', units:'kmh', highAccuracy:true, autosave:false };
+let trips=[], currentLog=[], running=false, watchId=null;
+let tripStart=null, timerIv=null;
+let maxSpd=0, prevSpdMs=null, prevTms=null;
+let distKm=0, prevLat=null, prevLon=null;
+let spdSum=0, spdCnt=0, peakAcc=0, curSpd=0;
+let compareIds=[], detailId=null;
 
-let trips = [];            // saved trips (localStorage)
-let currentLog = [];       // raw GPS entries for active trip
-let running = false;
-let watchId = null;
+// ═══════════════════════════════════════════════
+//  ANALOG GAUGE
+//  SVG viewBox="0 0 280 175"  pivot cx=140 cy=150  R=112
+//  Arc sweeps from -225° to +45° (270° total)
+//  Both angles measured clockwise from 12-o'clock (our convention)
+// ═══════════════════════════════════════════════
+const CX=140, CY=150, R=112, A0=-225, A1=45;
 
-// Active trip metrics
-let tripStartTime = null;
-let timerInterval = null;
-let maxSpeed = 0;
-let prevSpeedMs = null, prevTimeMs = null;
-let totalDistKm = 0;
-let prevLat = null, prevLon = null;
-let speedSum = 0, speedCount = 0;
-let peakAccel = 0;
-let currentAccel = 0;
-let currentSpeed = 0;
-
-// Compare selection
-let compareIds = [];
-
-// Detail export ref
-let detailTripId = null;
-
-// ═══════════════════════════════════════════════════════════════
-//  INIT
-// ═══════════════════════════════════════════════════════════════
-function init() {
-  loadSettings();
-  loadTrips();
-  applySettings();
-  drawAnalogGauge();
-  renderTrips();
-  updateAnalog(0);
-
-  // Tabs
-  document.querySelectorAll('.tab').forEach(t => {
-    t.addEventListener('click', () => {
-      document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
-      document.querySelectorAll('.page').forEach(x => x.classList.remove('active'));
-      t.classList.add('active');
-      document.getElementById('page-' + t.dataset.tab).classList.add('active');
-    });
-  });
+// Convert our clock-angle to standard math angle then to x,y
+function pt(angleClock, r){
+  const rad = (angleClock - 90) * Math.PI / 180;
+  return { x: CX + r*Math.cos(rad), y: CY + r*Math.sin(rad) };
 }
 
-// ═══════════════════════════════════════════════════════════════
-//  SETTINGS
-// ═══════════════════════════════════════════════════════════════
-function loadSettings() {
-  try { const s = localStorage.getItem('vl_settings'); if(s) settings = {...settings,...JSON.parse(s)}; } catch(e){}
-}
-function saveSettings() {
-  localStorage.setItem('vl_settings', JSON.stringify(settings));
-}
-function applySettings() {
-  // Gauge mode
-  document.querySelectorAll('.gauge-opt').forEach(el => {
-    el.classList.toggle('active', el.textContent.toLowerCase() === settings.gaugeMode);
-  });
-  document.getElementById('analog-gauge').style.display = settings.gaugeMode === 'analog' ? 'flex' : 'none';
-  document.getElementById('digital-gauge').style.display = settings.gaugeMode === 'digital' ? 'flex' : 'none';
-
-  // Units
-  document.querySelectorAll('.unit-opt').forEach(el => {
-    el.classList.toggle('active', el.textContent === (settings.units === 'kmh' ? 'km/h' : 'mph'));
-  });
-  const ulabel = settings.units === 'kmh' ? 'km/h' : 'mph';
-  ['speed-unit-label','dg-unit-label','ag-max-unit','dg-max-unit'].forEach(id => {
-    const el = document.getElementById(id); if(el) el.textContent = ulabel;
-  });
-
-  // Toggles
-  document.getElementById('tog-highaccuracy').checked = settings.highAccuracy;
-  document.getElementById('tog-autosave').checked = settings.autosave;
+function arcD(a1, a2, r){
+  if(Math.abs(a2-a1)<0.01) return '';
+  const s=pt(a1,r), e=pt(a2,r);
+  const sweep=((a2-a1)+360)%360;
+  return `M${s.x.toFixed(2)},${s.y.toFixed(2)} A${r},${r} 0 ${sweep>180?1:0} 1 ${e.x.toFixed(2)},${e.y.toFixed(2)}`;
 }
 
-function setGaugeMode(mode) {
-  settings.gaugeMode = mode; saveSettings(); applySettings();
-  updateSpeedDisplay(currentSpeed);
-}
-function setUnits(u) {
-  settings.units = u; saveSettings(); applySettings();
-  updateSpeedDisplay(currentSpeed);
-  // update max label
-  const mx = toDisplaySpeed(maxSpeed);
-  document.getElementById('ag-max').textContent = mx.toFixed(0);
-  document.getElementById('dg-max').textContent = mx.toFixed(0);
-}
-
-document.getElementById('tog-highaccuracy').addEventListener('change', e => {
-  settings.highAccuracy = e.target.checked; saveSettings();
-});
-document.getElementById('tog-autosave').addEventListener('change', e => {
-  settings.autosave = e.target.checked; saveSettings();
-});
-
-function toDisplaySpeed(kmh) {
-  return settings.units === 'kmh' ? kmh : kmh * 0.621371;
-}
-function maxDisplaySpeed() {
-  return settings.units === 'kmh' ? 160 : 100;
-}
-
-// ═══════════════════════════════════════════════════════════════
-//  ANALOG GAUGE DRAWING
-// ═══════════════════════════════════════════════════════════════
-const CX=130, CY=130, R=105, START_ANG=-220, END_ANG=40;
-
-function polarToXY(angleDeg, r) {
-  const rad = (angleDeg - 90) * Math.PI / 180;
-  return { x: CX + r * Math.cos(rad), y: CY + r * Math.sin(rad) };
-}
-
-function arcPath(startDeg, endDeg, r) {
-  const s = polarToXY(startDeg, r);
-  const e = polarToXY(endDeg, r);
-  const large = (endDeg - startDeg + 360) % 360 > 180 ? 1 : 0;
-  return `M ${s.x} ${s.y} A ${r} ${r} 0 ${large} 1 ${e.x} ${e.y}`;
-}
-
-function drawAnalogGauge() {
-  const track = arcPath(START_ANG, END_ANG, R);
-  document.getElementById('ag-track').setAttribute('d', track);
-  document.getElementById('ag-fill').setAttribute('d', track);
-
-  // Ticks + labels
-  const tickG  = document.getElementById('ag-ticks');
-  const labelG = document.getElementById('ag-labels');
-  tickG.innerHTML = ''; labelG.innerHTML = '';
-  const range = END_ANG - START_ANG;
-  const maxSpd = 160; // internal always km/h
-
-  for (let spd = 0; spd <= maxSpd; spd += 10) {
-    const frac = spd / maxSpd;
-    const ang  = START_ANG + frac * range;
-    const isMaj = spd % 20 === 0;
-    const inner = polarToXY(ang, R - (isMaj ? 18 : 10));
-    const outer = polarToXY(ang, R - 2);
-    const l = document.createElementNS('http://www.w3.org/2000/svg','line');
-    l.setAttribute('x1', outer.x); l.setAttribute('y1', outer.y);
-    l.setAttribute('x2', inner.x); l.setAttribute('y2', inner.y);
-    l.setAttribute('stroke', isMaj ? '#3a5570' : '#1e3248');
-    l.setAttribute('stroke-width', isMaj ? '2' : '1');
-    l.setAttribute('stroke-linecap','round');
-    tickG.appendChild(l);
-
-    if (isMaj) {
-      const lp = polarToXY(ang, R - 28);
-      const t = document.createElementNS('http://www.w3.org/2000/svg','text');
-      t.setAttribute('x', lp.x); t.setAttribute('y', lp.y);
-      t.setAttribute('text-anchor','middle'); t.setAttribute('dominant-baseline','middle');
-      t.setAttribute('fill','#3a5570'); t.setAttribute('font-size','9');
-      t.setAttribute('font-family','Share Tech Mono,monospace');
-      t.textContent = spd;
-      labelG.appendChild(t);
+function buildGauge(){
+  const range=A1-A0, maxK=160;
+  document.getElementById('ag-track').setAttribute('d', arcD(A0,A1,R));
+  // colour zones
+  const aG=A0+(80/maxK)*range, aA=A0+(130/maxK)*range;
+  document.getElementById('ag-zone-g').setAttribute('d', arcD(A0,aG,R));
+  document.getElementById('ag-zone-a').setAttribute('d', arcD(aG,aA,R));
+  document.getElementById('ag-zone-r').setAttribute('d', arcD(aA,A1,R));
+  // ticks & labels
+  const tG=document.getElementById('ag-ticks'), lG=document.getElementById('ag-labels');
+  tG.innerHTML=''; lG.innerHTML='';
+  for(let spd=0;spd<=maxK;spd+=10){
+    const frac=spd/maxK, ang=A0+frac*range, maj=spd%20===0;
+    const o=pt(ang,R-3), i=pt(ang,R-(maj?20:11));
+    const ln=document.createElementNS('http://www.w3.org/2000/svg','line');
+    ln.setAttribute('x1',o.x);ln.setAttribute('y1',o.y);
+    ln.setAttribute('x2',i.x);ln.setAttribute('y2',i.y);
+    ln.setAttribute('stroke',maj?'#3a5a70':'#1e3248');
+    ln.setAttribute('stroke-width',maj?'2.5':'1.5');
+    ln.setAttribute('stroke-linecap','round');
+    tG.appendChild(ln);
+    if(maj){
+      const lp=pt(ang,R-33);
+      const t=document.createElementNS('http://www.w3.org/2000/svg','text');
+      t.setAttribute('x',lp.x.toFixed(1));t.setAttribute('y',lp.y.toFixed(1));
+      t.setAttribute('text-anchor','middle');t.setAttribute('dominant-baseline','middle');
+      t.setAttribute('fill','#4a6880');t.setAttribute('font-size','10');
+      t.setAttribute('font-family','JetBrains Mono,monospace');t.setAttribute('font-weight','600');
+      t.textContent=spd; lG.appendChild(t);
     }
   }
-  updateAnalog(0);
+  setNeedle(0);
 }
 
-function updateAnalog(kmh) {
-  const maxKmh = 160;
-  const frac = Math.min(kmh / maxKmh, 1);
-  const range = END_ANG - START_ANG;
-  const fillEnd = START_ANG + frac * range;
+function setNeedle(kmh){
+  const frac=Math.min(kmh/160,1);
+  const range=A1-A0;
+  // Our clock angle for this speed
+  const clockAng = A0 + frac*range;
+  // SVG rotate() uses standard CCW-from-+X convention.
+  // Our pt() uses (d-90)*pi/180, so to rotate the needle group
+  // (which points straight up at 0 rotation) to clockAng:
+  // SVG rotate = clockAng  (because SVG Y is flipped, clockwise = positive)
+  document.getElementById('ag-needle-g')
+    .setAttribute('transform',`rotate(${clockAng.toFixed(3)},${CX},${CY})`);
 
   // Fill arc
-  if (frac > 0.001) {
-    document.getElementById('ag-fill').setAttribute('d', arcPath(START_ANG, fillEnd, R));
-    document.getElementById('ag-fill').style.display = '';
+  const fillEl=document.getElementById('ag-fill');
+  if(frac>0.002){
+    fillEl.setAttribute('d', arcD(A0, A0+frac*range, R));
+    fillEl.style.display='';
+    const col=frac<0.5?'#00e87a':frac<0.8125?'#00d4ff':'#ff3a56';
+    fillEl.setAttribute('stroke',col);
+    fillEl.style.filter=`drop-shadow(0 0 10px ${col})`;
   } else {
-    document.getElementById('ag-fill').style.display = 'none';
+    fillEl.style.display='none';
   }
-
-  // Needle rotation
-  const needleDeg = START_ANG + frac * range;
-  document.getElementById('ag-needle').style.transform = `rotate(${needleDeg + 90}deg)`;
-
-  // Color by speed
-  let col = '#00ff88';
-  if (kmh > 130) col = '#ff3d5a';
-  else if (kmh > 80) col = '#00c8ff';
-  document.getElementById('ag-fill').style.stroke = col;
-  document.getElementById('ag-fill').style.filter = `drop-shadow(0 0 8px ${col})`;
 }
 
-// ═══════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════
 //  SPEED DISPLAY
-// ═══════════════════════════════════════════════════════════════
-function updateSpeedDisplay(kmh) {
-  currentSpeed = kmh;
-  const disp = toDisplaySpeed(kmh);
-  const dispMax = toDisplaySpeed(maxSpeed);
+// ═══════════════════════════════════════════════
+function dispSpd(kmh){ return S.units==='kmh'?kmh:kmh*0.621371; }
+function unitLbl(){ return S.units==='kmh'?'km/h':'mph'; }
 
-  // Analog
-  document.getElementById('ag-speed').textContent = Math.round(disp);
-  document.getElementById('ag-max').textContent = dispMax.toFixed(0);
-  updateAnalog(kmh); // always internal kmh for gauge geometry
-
-  // Digital
-  document.getElementById('dg-speed').textContent = Math.round(disp);
-  document.getElementById('dg-max').textContent = dispMax.toFixed(0);
-  const pct = Math.min(kmh / 160 * 100, 100);
-  document.getElementById('dg-bar').style.width = pct + '%';
-  let col = '#00ff88';
-  if (kmh > 130) col = '#ff3d5a';
-  else if (kmh > 80) col = '#00c8ff';
-  document.getElementById('dg-speed').style.color = col;
-  document.getElementById('dg-bar').style.background = `linear-gradient(90deg,${col},#00c8ff)`;
+function updateSpeed(kmh){
+  curSpd=kmh;
+  const d=dispSpd(kmh), dm=dispSpd(maxSpd);
+  // analog
+  document.getElementById('ag-speed').textContent=Math.round(d);
+  document.getElementById('ag-peak').textContent=dm.toFixed(0);
+  setNeedle(kmh);
+  const numEl=document.getElementById('ag-speed');
+  numEl.style.color=kmh>130?'var(--red)':kmh>80?'var(--cyan)':'var(--green)';
+  numEl.style.textShadow=kmh>130?'0 0 24px rgba(255,58,86,.4)':
+    kmh>80?'0 0 24px rgba(0,212,255,.4)':'0 0 24px rgba(0,232,122,.4)';
+  // digital
+  document.getElementById('dg-speed').textContent=Math.round(d);
+  document.getElementById('dg-peak').textContent=dm.toFixed(0);
+  const pct=Math.min(kmh/160*100,100);
+  const fill=document.getElementById('dg-fill');
+  fill.style.width=pct+'%';
+  const col=kmh>130?'var(--red)':kmh>80?'var(--cyan)':'var(--green)';
+  fill.style.background=col;
+  document.getElementById('dg-speed').style.color=col;
 }
 
-// ═══════════════════════════════════════════════════════════════
-//  SIGNAL BARS (satellite simulation via accuracy)
-// ═══════════════════════════════════════════════════════════════
-function updateSignal(accuracy, sats) {
-  // Use accuracy as a proxy: <5m=4 bars, <15=3, <30=2, else 1
-  let bars = accuracy == null ? 0 : accuracy < 5 ? 4 : accuracy < 15 ? 3 : accuracy < 30 ? 2 : 1;
-  for (let i = 1; i <= 4; i++) {
-    document.getElementById('sb'+i).classList.toggle('on', i <= bars);
-  }
-  document.getElementById('gnss-sats').textContent = sats !== null ? sats : '—';
-  document.getElementById('gnss-acc').textContent  = accuracy != null ? accuracy.toFixed(0)+'m' : '—';
-}
-
-// ═══════════════════════════════════════════════════════════════
-//  GPS / TRIP LOGIC
-// ═══════════════════════════════════════════════════════════════
-function startTrip() {
-  if (!navigator.geolocation) { toast('Geolocation not supported'); return; }
-
-  running = true;
-  currentLog = [];
-  maxSpeed = 0; prevSpeedMs = null; prevTimeMs = null;
-  totalDistKm = 0; prevLat = null; prevLon = null;
-  speedSum = 0; speedCount = 0; peakAccel = 0; currentAccel = 0;
-  tripStartTime = Date.now();
-
-  document.getElementById('btn-start').disabled = true;
-  document.getElementById('btn-stop').disabled  = false;
-  document.getElementById('rec-dot').classList.add('active');
-
-  // Timer
-  timerInterval = setInterval(updateTimer, 1000);
-
-  watchId = navigator.geolocation.watchPosition(onGPS, onGPSErr, {
-    enableHighAccuracy: settings.highAccuracy,
-    maximumAge: 0, timeout: 15000
+// ═══════════════════════════════════════════════
+//  SIGNAL
+// ═══════════════════════════════════════════════
+function updateSignal(acc,sats){
+  const bars=acc==null?0:acc<5?4:acc<15?3:acc<30?2:1;
+  [1,2,3,4].forEach(i=>{
+    document.getElementById('sb'+i).classList.toggle('on',i<=bars);
+    const el=document.getElementById('sb'+i+'b');
+    if(el) el.classList.toggle('on',i<=bars);
   });
+  document.getElementById('gnss-sats').textContent=sats||'—';
+  document.getElementById('gnss-acc').textContent=acc!=null?acc.toFixed(0)+'m':'—';
 }
 
-function stopTrip() {
-  if (!running) return;
-  running = false;
-  if (watchId !== null) { navigator.geolocation.clearWatch(watchId); watchId = null; }
-  clearInterval(timerInterval);
-  document.getElementById('btn-start').disabled = false;
-  document.getElementById('btn-stop').disabled  = true;
-  document.getElementById('rec-dot').classList.remove('active');
+// ═══════════════════════════════════════════════
+//  TRIP LOGIC
+// ═══════════════════════════════════════════════
+function startTrip(){
+  if(!navigator.geolocation){toast('Geolocation not supported');return;}
+  running=true; currentLog=[];
+  maxSpd=0;prevSpdMs=null;prevTms=null;
+  distKm=0;prevLat=null;prevLon=null;
+  spdSum=0;spdCnt=0;peakAcc=0;curSpd=0;
+  tripStart=Date.now();
+  document.getElementById('btn-start').disabled=true;
+  document.getElementById('btn-stop').disabled=false;
+  const rp=document.getElementById('rec-pill');
+  rp.classList.add('live');
+  document.getElementById('rec-txt').textContent='REC';
+  timerIv=setInterval(tickTimer,1000);
+  watchId=navigator.geolocation.watchPosition(onGPS,onGPSErr,
+    {enableHighAccuracy:S.highAccuracy,maximumAge:0,timeout:15000});
+}
 
-  if (currentLog.length === 0) { toast('No data recorded'); return; }
+function stopTrip(){
+  if(!running)return;
+  running=false;
+  if(watchId!==null){navigator.geolocation.clearWatch(watchId);watchId=null;}
+  clearInterval(timerIv);
+  document.getElementById('btn-start').disabled=false;
+  document.getElementById('btn-stop').disabled=true;
+  document.getElementById('rec-pill').classList.remove('live');
+  document.getElementById('rec-txt').textContent='IDLE';
+  if(!currentLog.length){toast('No GPS data recorded');return;}
+  if(S.autosave){saveCurrentTrip('Trip '+new Date().toLocaleDateString());}
+  else{showSummary();}
+}
 
-  if (settings.autosave) {
-    const name = 'Trip ' + new Date().toLocaleDateString();
-    saveCurrentTrip(name);
-  } else {
-    showSummaryModal();
+function onGPS(pos){
+  const{latitude:lat,longitude:lon,altitude:alt,heading,accuracy,speed:rawS}=pos.coords;
+  const sMs=rawS!=null&&rawS>=0?rawS:0;
+  const sKmh=sMs*3.6;
+  const now=pos.timestamp;
+  let acc=0;
+  if(prevSpdMs!==null&&prevTms!==null){
+    const dt=(now-prevTms)/1000;
+    if(dt>0)acc=(sMs-prevSpdMs)/dt;
   }
+  prevSpdMs=sMs;prevTms=now;
+  if(Math.abs(acc)>peakAcc)peakAcc=Math.abs(acc);
+  if(prevLat!==null)distKm+=haversine(prevLat,prevLon,lat,lon);
+  prevLat=lat;prevLon=lon;
+  if(sKmh>maxSpd)maxSpd=sKmh;
+  spdSum+=sKmh;spdCnt++;
+  const estSats=accuracy<5?'12+':accuracy<10?'8–11':accuracy<20?'5–7':'<5';
+  updateSignal(accuracy,estSats);
+  currentLog.push({t:new Date(now).toISOString(),speedKmh:+sKmh.toFixed(3),accel:+acc.toFixed(3),
+    lat:+lat.toFixed(7),lon:+lon.toFixed(7),alt:alt!=null?+alt.toFixed(2):null,
+    heading:heading!=null?+heading.toFixed(1):null,accuracy:+accuracy.toFixed(1)});
+  const avgS=spdCnt>0?spdSum/spdCnt:0;
+  updateSpeed(sKmh);
+  document.getElementById('st-dist').textContent=distKm.toFixed(2);
+  document.getElementById('st-accel').textContent=acc.toFixed(2);
+  document.getElementById('st-avg').textContent=dispSpd(avgS).toFixed(1);
+  document.getElementById('sec-paccel').textContent=peakAcc.toFixed(2)+' m/s²';
+  document.getElementById('sec-hdg').textContent=heading!=null?bearLbl(heading):'—';
+  document.getElementById('sec-alt').textContent=alt!=null?alt.toFixed(1)+' m':'—';
+  document.getElementById('sec-pos').textContent=lat.toFixed(4)+', '+lon.toFixed(4);
 }
 
-function onGPS(pos) {
-  const { latitude: lat, longitude: lon, altitude: alt,
-          heading, accuracy, speed: rawSpd } = pos.coords;
-  const speedMs  = rawSpd != null && rawSpd >= 0 ? rawSpd : 0;
-  const speedKmh = speedMs * 3.6;
-  const now      = pos.timestamp;
-
-  // GPS acceleration
-  let accel = 0;
-  if (prevSpeedMs !== null && prevTimeMs !== null) {
-    const dt = (now - prevTimeMs) / 1000;
-    if (dt > 0) accel = (speedMs - prevSpeedMs) / dt;
-  }
-  prevSpeedMs = speedMs; prevTimeMs = now;
-  currentAccel = accel;
-  if (Math.abs(accel) > peakAccel) peakAccel = Math.abs(accel);
-
-  // Distance
-  if (prevLat !== null) {
-    totalDistKm += haversine(prevLat, prevLon, lat, lon);
-  }
-  prevLat = lat; prevLon = lon;
-
-  // Max speed
-  if (speedKmh > maxSpeed) maxSpeed = speedKmh;
-
-  // Average
-  speedSum += speedKmh; speedCount++;
-
-  // Signal
-  // Satellite count not directly available in Web Geolocation API, estimate from accuracy
-  const estSats = accuracy < 5 ? '12+' : accuracy < 10 ? '8-11' : accuracy < 20 ? '5-7' : '<5';
-  updateSignal(accuracy, estSats);
-
-  // Log entry
-  currentLog.push({
-    t: new Date(now).toISOString(),
-    speedKmh: +speedKmh.toFixed(3),
-    accel: +accel.toFixed(3),
-    lat: +lat.toFixed(7), lon: +lon.toFixed(7),
-    alt: alt != null ? +alt.toFixed(2) : null,
-    heading: heading != null ? +heading.toFixed(1) : null,
-    accuracy: +accuracy.toFixed(1)
-  });
-
-  // Update dashboard
-  updateSpeedDisplay(speedKmh);
-  const avgSpd = speedCount > 0 ? speedSum / speedCount : 0;
-  document.getElementById('stat-dist').textContent  = totalDistKm.toFixed(2);
-  document.getElementById('stat-accel').textContent = accel.toFixed(2);
-  document.getElementById('stat-avg').textContent   = toDisplaySpeed(avgSpd).toFixed(1);
-  document.getElementById('sec-peak-accel').textContent = peakAccel.toFixed(2) + ' m/s²';
-  document.getElementById('sec-heading').textContent = heading != null ? bearingLabel(heading) : '—';
-  document.getElementById('sec-alt').textContent = alt != null ? alt.toFixed(1) + ' m' : '—';
-  document.getElementById('sec-coords').textContent = lat.toFixed(4) + ', ' + lon.toFixed(4);
+function onGPSErr(e){
+  const m={1:'Permission denied',2:'Position unavailable',3:'Timeout'};
+  toast('GPS: '+(m[e.code]||e.message));
 }
 
-function onGPSErr(err) {
-  const msgs = {1:'Permission denied — check browser settings',2:'Position unavailable',3:'GPS timeout'};
-  toast('GPS: ' + (msgs[err.code] || err.message));
+function tickTimer(){
+  if(!tripStart)return;
+  const s=Math.floor((Date.now()-tripStart)/1000);
+  const h=String(Math.floor(s/3600)).padStart(2,'0');
+  const m=String(Math.floor((s%3600)/60)).padStart(2,'0');
+  const sc=String(s%60).padStart(2,'0');
+  document.getElementById('trip-timer').textContent=`${h}:${m}:${sc}`;
 }
 
-function updateTimer() {
-  if (!tripStartTime) return;
-  const s = Math.floor((Date.now() - tripStartTime) / 1000);
-  const h = String(Math.floor(s/3600)).padStart(2,'0');
-  const m = String(Math.floor((s%3600)/60)).padStart(2,'0');
-  const sec = String(s%60).padStart(2,'0');
-  document.getElementById('trip-timer').textContent = `${h}:${m}:${sec}`;
-}
-
-// ═══════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════
 //  SUMMARY MODAL
-// ═══════════════════════════════════════════════════════════════
-function showSummaryModal() {
-  const dur = tripStartTime ? Math.floor((Date.now()-tripStartTime)/1000) : 0;
-  const avgSpd = speedCount > 0 ? speedSum/speedCount : 0;
-
-  const grid = document.getElementById('summary-grid');
-  grid.innerHTML = '';
-  const items = [
-    {val: fmtDuration(dur),             lbl:'Duration',    cls:''},
-    {val: toDisplaySpeed(maxSpeed).toFixed(1)+' '+unitLabel(), lbl:'Top Speed', cls:'red'},
-    {val: totalDistKm.toFixed(2)+' km', lbl:'Distance',    cls:'green'},
-    {val: toDisplaySpeed(avgSpd).toFixed(1)+' '+unitLabel(), lbl:'Avg Speed',  cls:''},
-    {val: peakAccel.toFixed(2)+' m/s²', lbl:'Peak Accel',  cls:''},
-    {val: currentLog.length+' pts',     lbl:'GPS Points',  cls:''},
-  ];
-  items.forEach(it => {
-    const c = document.createElement('div'); c.className='sum-card';
-    c.innerHTML = `<div class="sum-val ${it.cls}">${it.val}</div><div class="sum-lbl">${it.lbl}</div>`;
-    grid.appendChild(c);
+// ═══════════════════════════════════════════════
+function showSummary(){
+  const dur=tripStart?Math.floor((Date.now()-tripStart)/1000):0;
+  const avg=spdCnt>0?spdSum/spdCnt:0;
+  const g=document.getElementById('sum-grid');g.innerHTML='';
+  [{v:fmtDur(dur),l:'Duration',c:''},
+   {v:dispSpd(maxSpd).toFixed(1)+' '+unitLbl(),l:'Top Speed',c:'r'},
+   {v:distKm.toFixed(2)+' km',l:'Distance',c:'g'},
+   {v:dispSpd(avg).toFixed(1)+' '+unitLbl(),l:'Avg Speed',c:''},
+   {v:peakAcc.toFixed(2)+' m/s²',l:'Peak Accel',c:''},
+   {v:currentLog.length+' pts',l:'GPS Points',c:''}
+  ].forEach(i=>{
+    const c=document.createElement('div');c.className='sum-card';
+    c.innerHTML=`<div class="sv ${i.c}">${i.v}</div><div class="sl">${i.l}</div>`;
+    g.appendChild(c);
   });
-
-  document.getElementById('trip-name-input').value =
-    'Trip ' + new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});
-  document.getElementById('modal-summary').classList.add('show');
+  document.getElementById('trip-name-inp').value=
+    'Trip '+new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});
+  document.getElementById('ov-summary').classList.add('show');
 }
 
-function saveTrip() {
-  const name = document.getElementById('trip-name-input').value.trim() ||
-    'Trip ' + new Date().toLocaleDateString();
-  saveCurrentTrip(name);
-  closeModal('modal-summary');
+function saveTrip(){
+  const name=document.getElementById('trip-name-inp').value.trim()||'Trip '+Date.now();
+  saveCurrentTrip(name);closeOv('ov-summary');
 }
-function discardTrip() {
-  closeModal('modal-summary');
-  currentLog = [];
-  toast('Trip discarded');
+function discardTrip(){closeOv('ov-summary');currentLog=[];toast('Trip discarded');}
+
+function saveCurrentTrip(name){
+  const dur=tripStart?Math.floor((Date.now()-tripStart)/1000):0;
+  const avg=spdCnt>0?spdSum/spdCnt:0;
+  trips.unshift({id:Date.now(),name,date:new Date().toISOString(),
+    duration:dur,maxSpeedKmh:+maxSpd.toFixed(2),avgSpeedKmh:+avg.toFixed(2),
+    distKm:+distKm.toFixed(3),peakAccel:+peakAcc.toFixed(3),
+    points:currentLog.length,log:currentLog});
+  persistTrips();renderTrips();toast('Saved: '+name);currentLog=[];
 }
 
-function saveCurrentTrip(name) {
-  const dur = tripStartTime ? Math.floor((Date.now()-tripStartTime)/1000) : 0;
-  const avgSpd = speedCount > 0 ? speedSum/speedCount : 0;
-  const trip = {
-    id: Date.now(),
-    name,
-    date: new Date().toISOString(),
-    duration: dur,
-    maxSpeedKmh: +maxSpeed.toFixed(2),
-    avgSpeedKmh: +avgSpd.toFixed(2),
-    distKm: +totalDistKm.toFixed(3),
-    peakAccel: +peakAccel.toFixed(3),
-    points: currentLog.length,
-    log: currentLog
-  };
-  trips.unshift(trip);
-  persistTrips();
-  renderTrips();
-  toast('Trip saved: ' + name);
-  currentLog = [];
-}
+// ═══════════════════════════════════════════════
+//  TRIPS
+// ═══════════════════════════════════════════════
+function loadTrips(){try{const t=localStorage.getItem('vl3_trips');if(t)trips=JSON.parse(t);}catch(e){}}
+function persistTrips(){try{localStorage.setItem('vl3_trips',JSON.stringify(trips));}catch(e){toast('Storage full');}}
 
-// ═══════════════════════════════════════════════════════════════
-//  TRIPS LIST
-// ═══════════════════════════════════════════════════════════════
-function loadTrips() {
-  try { const t = localStorage.getItem('vl_trips'); if(t) trips = JSON.parse(t); } catch(e){}
-}
-function persistTrips() {
-  try { localStorage.setItem('vl_trips', JSON.stringify(trips)); } catch(e) {
-    toast('Storage full — export trips to free space');
-  }
-}
-
-function renderTrips() {
-  const el = document.getElementById('trips-list');
-  if (!trips.length) {
-    el.innerHTML = '<div class="empty-state">No saved trips yet.<br>Start a trip on the Dashboard tab.</div>';
-    return;
-  }
-  el.innerHTML = '';
-  trips.forEach(tr => {
-    const sel = compareIds.includes(tr.id);
-    const card = document.createElement('div');
-    card.className = 'trip-card';
-    if (sel) card.style.borderColor = 'var(--warn)';
-    const d = new Date(tr.date);
-    const dateStr = d.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}) +
-                    ' ' + d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
-    card.innerHTML = `
-      <div class="trip-card-hdr">
-        <div>
-          <div class="trip-name">${tr.name}</div>
-          <div class="trip-date">${dateStr}</div>
-        </div>
-        ${sel ? '<span style="color:var(--warn);font-size:.7rem;font-weight:700">✓ SELECTED</span>' : ''}
+function renderTrips(){
+  const el=document.getElementById('trips-list');
+  if(!trips.length){el.innerHTML='<div class="empty">No saved trips yet.<br>Start a trip from the Dashboard.</div>';return;}
+  el.innerHTML='';
+  trips.forEach(tr=>{
+    const sel=compareIds.includes(tr.id);
+    const d=new Date(tr.date);
+    const ds=d.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})+
+             ' '+d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+    const card=document.createElement('div');
+    card.className='trip-card'+(sel?' sel':'');
+    card.innerHTML=`
+      <div class="tc-head">
+        <div><div class="tc-name">${tr.name}</div><div class="tc-date">${ds}</div></div>
+        ${sel?'<span class="tc-sel-badge">✓ SELECTED</span>':''}
       </div>
-      <div class="trip-stats-mini">
-        <div class="tsm-item"><span class="tsm-val">${toDisplaySpeed(tr.maxSpeedKmh).toFixed(0)}</span><span class="tsm-lbl">Top ${unitLabel()}</span></div>
-        <div class="tsm-item"><span class="tsm-val">${tr.distKm.toFixed(1)}</span><span class="tsm-lbl">km</span></div>
-        <div class="tsm-item"><span class="tsm-val">${fmtDuration(tr.duration)}</span><span class="tsm-lbl">Time</span></div>
-        <div class="tsm-item"><span class="tsm-val">${tr.peakAccel.toFixed(1)}</span><span class="tsm-lbl">m/s²</span></div>
+      <div class="tc-stats">
+        <div class="tcs-item"><span class="tcs-val">${dispSpd(tr.maxSpeedKmh).toFixed(0)}</span><span class="tcs-lbl">Top ${unitLbl()}</span></div>
+        <div class="tcs-item"><span class="tcs-val">${tr.distKm.toFixed(1)}</span><span class="tcs-lbl">km</span></div>
+        <div class="tcs-item"><span class="tcs-val">${fmtDur(tr.duration)}</span><span class="tcs-lbl">Time</span></div>
+        <div class="tcs-item"><span class="tcs-val">${tr.peakAccel.toFixed(1)}</span><span class="tcs-lbl">m/s²</span></div>
       </div>
-      <div class="trip-actions">
-        <button class="ta-btn view" onclick="viewTrip(${tr.id})">📋 Detail</button>
-        <button class="ta-btn compare" onclick="toggleCompare(${tr.id})">⚖ Compare</button>
-        <button class="ta-btn del" onclick="deleteTrip(${tr.id})">🗑 Delete</button>
+      <div class="tc-btns">
+        <button class="tcb view" onclick="viewTrip(${tr.id})">📋 Detail</button>
+        <button class="tcb cmp"  onclick="toggleCmp(${tr.id})">⚖ Compare</button>
+        <button class="tcb del"  onclick="delTrip(${tr.id})">🗑 Delete</button>
       </div>`;
     el.appendChild(card);
   });
 }
 
-function deleteTrip(id) {
-  if (!confirm('Delete this trip?')) return;
-  trips = trips.filter(t => t.id !== id);
-  compareIds = compareIds.filter(x => x !== id);
-  persistTrips();
-  renderTrips();
-  updateCompareBar();
-  toast('Trip deleted');
+function delTrip(id){
+  if(!confirm('Delete this trip?'))return;
+  trips=trips.filter(t=>t.id!==id);compareIds=compareIds.filter(x=>x!==id);
+  persistTrips();renderTrips();updateCmpBar();toast('Trip deleted');
 }
 
-function viewTrip(id) {
-  const tr = trips.find(t => t.id === id);
-  if (!tr) return;
-  detailTripId = id;
-  document.getElementById('detail-title').textContent = tr.name;
-  const grid = document.getElementById('detail-grid');
-  grid.innerHTML = '';
-  const items = [
-    {val:fmtDuration(tr.duration),              lbl:'Duration',   cls:''},
-    {val:toDisplaySpeed(tr.maxSpeedKmh).toFixed(1)+' '+unitLabel(), lbl:'Top Speed', cls:'red'},
-    {val:tr.distKm.toFixed(2)+' km',            lbl:'Distance',   cls:'green'},
-    {val:toDisplaySpeed(tr.avgSpeedKmh).toFixed(1)+' '+unitLabel(), lbl:'Avg Speed', cls:''},
-    {val:tr.peakAccel.toFixed(2)+' m/s²',       lbl:'Peak Accel', cls:''},
-    {val:tr.points+' pts',                       lbl:'GPS Points', cls:''},
-  ];
-  items.forEach(it => {
-    const c = document.createElement('div'); c.className='sum-card';
-    c.innerHTML=`<div class="sum-val ${it.cls}">${it.val}</div><div class="sum-lbl">${it.lbl}</div>`;
-    grid.appendChild(c);
+function viewTrip(id){
+  const tr=trips.find(t=>t.id===id);if(!tr)return;
+  detailId=id;
+  document.getElementById('det-title').textContent=tr.name;
+  const g=document.getElementById('det-grid');g.innerHTML='';
+  [{v:fmtDur(tr.duration),l:'Duration',c:''},
+   {v:dispSpd(tr.maxSpeedKmh).toFixed(1)+' '+unitLbl(),l:'Top Speed',c:'r'},
+   {v:tr.distKm.toFixed(2)+' km',l:'Distance',c:'g'},
+   {v:dispSpd(tr.avgSpeedKmh).toFixed(1)+' '+unitLbl(),l:'Avg Speed',c:''},
+   {v:tr.peakAccel.toFixed(2)+' m/s²',l:'Peak Accel',c:''},
+   {v:tr.points+' pts',l:'GPS Points',c:''}
+  ].forEach(i=>{
+    const c=document.createElement('div');c.className='sum-card';
+    c.innerHTML=`<div class="sv ${i.c}">${i.v}</div><div class="sl">${i.l}</div>`;
+    g.appendChild(c);
   });
-  document.getElementById('modal-detail').classList.add('show');
+  document.getElementById('ov-detail').classList.add('show');
 }
 
-// ── COMPARE ──────────────────────────────────────────────────────
-function toggleCompare(id) {
-  if (compareIds.includes(id)) {
-    compareIds = compareIds.filter(x => x !== id);
-  } else {
-    if (compareIds.length >= 2) { toast('Select max 2 trips'); return; }
-    compareIds.push(id);
-  }
-  updateCompareBar();
-  renderTrips();
+function toggleCmp(id){
+  if(compareIds.includes(id)){compareIds=compareIds.filter(x=>x!==id);}
+  else{if(compareIds.length>=2){toast('Max 2 trips');return;}compareIds.push(id);}
+  updateCmpBar();renderTrips();
 }
 
-function updateCompareBar() {
-  const bar = document.getElementById('compare-bar');
-  const goBtn = document.getElementById('compare-go-btn');
-  const info = document.getElementById('compare-info');
-  if (compareIds.length > 0) {
+function updateCmpBar(){
+  const bar=document.getElementById('cmp-bar'),go=document.getElementById('cmp-go');
+  if(compareIds.length>0){
     bar.classList.add('show');
-    info.textContent = compareIds.length === 1 ? 'Select 1 more trip' : '2 trips selected';
-    goBtn.disabled = compareIds.length < 2;
-  } else {
-    bar.classList.remove('show');
-  }
+    document.getElementById('cmp-txt').textContent=
+      compareIds.length===1?'Select 1 more trip':'2 trips selected — ready';
+    go.disabled=compareIds.length<2;
+  }else{bar.classList.remove('show');}
 }
 
-function openCompare() {
-  if (compareIds.length < 2) return;
-  const [a, b] = compareIds.map(id => trips.find(t => t.id === id));
-  if (!a || !b) return;
-
-  const tbl = document.getElementById('compare-table');
-  const rows = [
-    {label:'Duration',     va:fmtDuration(a.duration), vb:fmtDuration(b.duration), numA:a.duration, numB:b.duration, higherIsBetter:true},
-    {label:`Top Speed (${unitLabel()})`, va:toDisplaySpeed(a.maxSpeedKmh).toFixed(1), vb:toDisplaySpeed(b.maxSpeedKmh).toFixed(1), numA:a.maxSpeedKmh, numB:b.maxSpeedKmh, higherIsBetter:true},
-    {label:'Distance (km)',va:a.distKm.toFixed(2),     vb:b.distKm.toFixed(2),     numA:a.distKm,     numB:b.distKm,     higherIsBetter:true},
-    {label:`Avg Speed (${unitLabel()})`,  va:toDisplaySpeed(a.avgSpeedKmh).toFixed(1), vb:toDisplaySpeed(b.avgSpeedKmh).toFixed(1), numA:a.avgSpeedKmh, numB:b.avgSpeedKmh, higherIsBetter:true},
-    {label:'Peak Accel (m/s²)',va:a.peakAccel.toFixed(2), vb:b.peakAccel.toFixed(2), numA:a.peakAccel, numB:b.peakAccel, higherIsBetter:true},
-    {label:'GPS Points',   va:a.points+'', vb:b.points+'', numA:a.points, numB:b.points, higherIsBetter:true},
+function openCompare(){
+  if(compareIds.length<2)return;
+  const[a,b]=compareIds.map(id=>trips.find(t=>t.id===id));
+  if(!a||!b)return;
+  const rows=[
+    {l:'Duration',va:fmtDur(a.duration),vb:fmtDur(b.duration),nA:a.duration,nB:b.duration},
+    {l:`Top Speed (${unitLbl()})`,va:dispSpd(a.maxSpeedKmh).toFixed(1),vb:dispSpd(b.maxSpeedKmh).toFixed(1),nA:a.maxSpeedKmh,nB:b.maxSpeedKmh},
+    {l:'Distance (km)',va:a.distKm.toFixed(2),vb:b.distKm.toFixed(2),nA:a.distKm,nB:b.distKm},
+    {l:`Avg Speed (${unitLbl()})`,va:dispSpd(a.avgSpeedKmh).toFixed(1),vb:dispSpd(b.avgSpeedKmh).toFixed(1),nA:a.avgSpeedKmh,nB:b.avgSpeedKmh},
+    {l:'Peak Accel (m/s²)',va:a.peakAccel.toFixed(2),vb:b.peakAccel.toFixed(2),nA:a.peakAccel,nB:b.peakAccel},
+    {l:'GPS Points',va:a.points+'',vb:b.points+'',nA:a.points,nB:b.points},
   ];
-
-  tbl.innerHTML = `<tr><th>Metric</th><th>${a.name}</th><th>${b.name}</th></tr>` +
-    rows.map(r => {
-      const aBetter = r.higherIsBetter ? r.numA > r.numB : r.numA < r.numB;
-      const tie = r.numA === r.numB;
-      return `<tr>
-        <td class="name">${r.label}</td>
-        <td class="${tie?'':aBetter?'better':'worse'}">${r.va}</td>
-        <td class="${tie?'':aBetter?'worse':'better'}">${r.vb}</td>
-      </tr>`;
+  document.getElementById('cmp-tbl').innerHTML=
+    `<tr><th>Metric</th><th>${a.name}</th><th>${b.name}</th></tr>`+
+    rows.map(r=>{
+      const aBetter=r.nA>r.nB,tie=r.nA===r.nB;
+      return `<tr><td class="nm">${r.l}</td>
+        <td class="${tie?'':aBetter?'win':'lose'}">${r.va}</td>
+        <td class="${tie?'':aBetter?'lose':'win'}">${r.vb}</td></tr>`;
     }).join('');
-
-  document.getElementById('modal-compare').classList.add('show');
+  document.getElementById('ov-compare').classList.add('show');
 }
 
-// ═══════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════
 //  EXPORT
-// ═══════════════════════════════════════════════════════════════
-function exportTripCSV() {
-  const tr = trips.find(t => t.id === detailTripId);
-  if (!tr || !tr.log?.length) { toast('No log data'); return; }
-  const hdrs = Object.keys(tr.log[0]).join(',');
-  const rows = tr.log.map(e => Object.values(e).join(','));
-  const csv = [hdrs,...rows].join('\n');
-  dlCSV(csv, tr.name.replace(/\s+/g,'-') + '.csv');
+// ═══════════════════════════════════════════════
+function exportTripCSV(){
+  const tr=trips.find(t=>t.id===detailId);
+  if(!tr||!tr.log?.length){toast('No log data');return;}
+  dlCSV([Object.keys(tr.log[0]).join(','),...tr.log.map(e=>Object.values(e).join(','))].join('\n'),
+    tr.name.replace(/\s+/g,'-')+'.csv');
+}
+function exportAllTrips(){
+  if(!trips.length){toast('No trips');return;}
+  const rows=['id,name,date,duration_s,max_speed_kmh,avg_speed_kmh,dist_km,peak_accel,points'];
+  trips.forEach(t=>rows.push([t.id,t.name,t.date,t.duration,t.maxSpeedKmh,t.avgSpeedKmh,t.distKm,t.peakAccel,t.points].join(',')));
+  dlCSV(rows.join('\n'),'velolog-all-trips.csv');
+}
+function dlCSV(csv,fname){
+  const a=Object.assign(document.createElement('a'),
+    {href:URL.createObjectURL(new Blob([csv],{type:'text/csv'})),download:fname});
+  a.click();URL.revokeObjectURL(a.href);toast('Exported: '+fname);
+}
+function clearAllTrips(){
+  if(!confirm('Delete ALL trips permanently?'))return;
+  trips=[];compareIds=[];persistTrips();renderTrips();updateCmpBar();toast('All trips cleared');
 }
 
-function exportAllTrips() {
-  if (!trips.length) { toast('No trips to export'); return; }
-  const rows = ['id,name,date,duration_s,max_speed_kmh,avg_speed_kmh,dist_km,peak_accel,points'];
-  trips.forEach(t => rows.push([t.id,t.name,t.date,t.duration,t.maxSpeedKmh,t.avgSpeedKmh,t.distKm,t.peakAccel,t.points].join(',')));
-  dlCSV(rows.join('\n'), 'velolog-all-trips.csv');
+// ═══════════════════════════════════════════════
+//  SETTINGS
+// ═══════════════════════════════════════════════
+function loadS(){try{const s=localStorage.getItem('vl3_settings');if(s)S={...S,...JSON.parse(s)};}catch(e){}}
+function saveS(){localStorage.setItem('vl3_settings',JSON.stringify(S));}
+
+function applyS(){
+  document.querySelectorAll('.pill-opt').forEach(el=>{
+    const t=el.textContent.toLowerCase();
+    if(t==='analog'||t==='digital') el.classList.toggle('active',t===S.gaugeMode);
+    if(el.textContent==='km/h'||el.textContent==='mph')
+      el.classList.toggle('active',el.textContent===(S.units==='kmh'?'km/h':'mph'));
+  });
+  document.getElementById('analog-gauge').style.display=S.gaugeMode==='analog'?'flex':'none';
+  document.getElementById('digital-gauge').style.display=S.gaugeMode==='digital'?'flex':'none';
+  const ul=unitLbl();
+  ['ag-unit-lbl','dg-unit-lbl','ag-peak-unit','dg-peak-unit'].forEach(id=>{
+    const el=document.getElementById(id);if(el)el.textContent=ul;
+  });
+  document.getElementById('tog-ha').checked=S.highAccuracy;
+  document.getElementById('tog-as').checked=S.autosave;
 }
 
-function dlCSV(csv, fname) {
-  const blob = new Blob([csv],{type:'text/csv'});
-  const url  = URL.createObjectURL(blob);
-  const a    = document.createElement('a');
-  a.href = url; a.download = fname; a.click();
-  URL.revokeObjectURL(url);
-  toast('Exported: ' + fname);
+function setGaugeMode(m){S.gaugeMode=m;saveS();applyS();updateSpeed(curSpd);}
+function setUnits(u){
+  S.units=u;saveS();applyS();updateSpeed(curSpd);
+  document.getElementById('ag-peak').textContent=dispSpd(maxSpd).toFixed(0);
+  document.getElementById('dg-peak').textContent=dispSpd(maxSpd).toFixed(0);
 }
+document.getElementById('tog-ha').addEventListener('change',e=>{S.highAccuracy=e.target.checked;saveS();});
+document.getElementById('tog-as').addEventListener('change',e=>{S.autosave=e.target.checked;saveS();});
 
-function clearAllTrips() {
-  if (!confirm('Delete ALL saved trips? This cannot be undone.')) return;
-  trips = []; compareIds = [];
-  persistTrips(); renderTrips(); updateCompareBar();
-  toast('All trips cleared');
-}
-
-// ═══════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════
 //  UTILS
-// ═══════════════════════════════════════════════════════════════
-function haversine(lat1,lon1,lat2,lon2) {
-  const R=6371, dLat=(lat2-lat1)*Math.PI/180, dLon=(lon2-lon1)*Math.PI/180;
-  const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+// ═══════════════════════════════════════════════
+function haversine(la1,lo1,la2,lo2){
+  const R=6371,dL=(la2-la1)*Math.PI/180,dl=(lo2-lo1)*Math.PI/180;
+  const a=Math.sin(dL/2)**2+Math.cos(la1*Math.PI/180)*Math.cos(la2*Math.PI/180)*Math.sin(dl/2)**2;
+  return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+}
+function fmtDur(s){const h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sc=s%60;
+  return h>0?`${h}h ${m}m`:`${m}m ${sc}s`;}
+function bearLbl(d){return['N','NE','E','SE','S','SW','W','NW'][Math.round(d/45)%8]+' '+d.toFixed(0)+'°';}
+function closeOv(id){document.getElementById(id).classList.remove('show');}
+function toast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),3000);
 }
 
-function fmtDuration(s) {
-  const h=Math.floor(s/3600), m=Math.floor((s%3600)/60), sec=s%60;
-  return h>0 ? `${h}h ${m}m` : `${m}m ${sec}s`;
-}
-
-function bearingLabel(deg) {
-  const dirs=['N','NE','E','SE','S','SW','W','NW'];
-  return dirs[Math.round(deg/45)%8] + ' ' + deg.toFixed(0) + '°';
-}
-
-function unitLabel() { return settings.units === 'kmh' ? 'km/h' : 'mph'; }
-
-function closeModal(id) { document.getElementById(id).classList.remove('show'); }
-
-function toast(msg) {
-  const t = document.getElementById('toast');
-  t.textContent = msg; t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), 3000);
-}
-
-// ═══════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════
 //  BOOT
-// ═══════════════════════════════════════════════════════════════
-init();
+// ═══════════════════════════════════════════════
+loadS();loadTrips();applyS();buildGauge();renderTrips();updateSpeed(0);
+document.querySelectorAll('.tab').forEach(t=>{
+  t.addEventListener('click',()=>{
+    document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+    document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));
+    t.classList.add('active');
+    document.getElementById('page-'+t.dataset.tab).classList.add('active');
+  });
+});
 </script>
 </body>
 </html>
